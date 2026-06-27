@@ -66,7 +66,7 @@ def detalhe(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk)
     vendas = cliente.vendas.order_by('-criada_em')[:20]
     contas = cliente.contas.order_by('vencimento')
-    contas_pendentes = [c for c in contas if not c.pago]
+    contas_pendentes = [c for c in contas if c.status != 'quitado']
     total_devido = sum(c.valor for c in contas_pendentes)
     return render(request, 'clientes/detalhe.html', {
         'cliente': cliente,
@@ -115,10 +115,10 @@ def excluir(request, pk):
 def quitar_tudo(request, pk):
     from datetime import date
     cliente = get_object_or_404(Cliente, pk=pk)
-    contas = cliente.contas.filter(pago=False)
+    contas = cliente.contas.exclude(status='quitado')
     for conta in contas:
-        conta.pago = True
-        conta.data_pagamento = date.today()
+        conta.status = 'quitado'
+        conta.valor_pago = conta.valor_total
         conta.save()
     messages.success(request, f'Toda a divida de "{cliente.nome}" foi quitada!')
     return redirect('cliente_detalhe', pk=pk)

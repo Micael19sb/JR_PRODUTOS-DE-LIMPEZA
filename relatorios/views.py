@@ -17,7 +17,7 @@ def dashboard(request):
 
     vendas_qs = Venda.objects.filter(status='concluida')
     estoques_qs = Estoque.objects.all()
-    contas_qs = ContaReceber.objects.filter(pago=False)
+    contas_qs = ContaReceber.objects.exclude(status='quitado')
     lojas = Loja.objects.filter(ativa=True)
 
     # Totais do dia
@@ -55,7 +55,7 @@ def dashboard(request):
         saldo = cliente.saldo_devedor
         if saldo > 0:
             # Verificar se tem conta vencida
-            tem_vencida = any(c.vencida for c in cliente.contas.filter(pago=False))
+            tem_vencida = any(c.vencida for c in cliente.contas.exclude(status='quitado'))
             clientes_devedores.append({
                 'cliente': cliente,
                 'saldo': saldo,
