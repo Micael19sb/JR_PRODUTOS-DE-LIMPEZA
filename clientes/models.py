@@ -22,8 +22,13 @@ class Cliente(models.Model):
     @property
     def saldo_devedor(self):
         from financeiro.models import ContaReceber
+        return sum(c.valor_pendente for c in ContaReceber.objects.filter(cliente=self).exclude(status='quitado'))
+
+    @property
+    def _saldo_devedor_old(self):
+        from financeiro.models import ContaReceber
         from django.db.models import Sum
         total = ContaReceber.objects.filter(
-            cliente=self, pago=False
+            cliente=self
         ).aggregate(total=Sum('valor'))['total']
         return total or 0

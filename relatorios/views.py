@@ -29,7 +29,7 @@ def dashboard(request):
     total_mes = sum(v.total for v in vendas_mes)
 
     # A receber: contas a receber cadastradas + vendas fiado sem conta gerada
-    total_contas = contas_qs.aggregate(t=Sum('valor'))['t'] or Decimal('0')
+    total_contas = sum(c.valor_pendente for c in contas_qs)
 
     # Vendas fiado que não geraram ContaReceber (ex: consumidor final)
     vendas_fiado_sem_conta = vendas_qs.filter(
