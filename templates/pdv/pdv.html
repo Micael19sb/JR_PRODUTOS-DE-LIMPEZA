@@ -201,6 +201,23 @@
         <label style="font-size:0.75rem;color:#64748b">Vencimento</label>
         <input type="date" id="vencimento-fiado" class="form-control form-control-sm">
       </div>
+
+      <div id="campo-troco" style="display:none" class="mt-2">
+        <label style="font-size:0.75rem;color:#64748b;font-weight:600">Valor recebido (R$)</label>
+        <input type="number" id="valor-recebido" class="form-control form-control-sm"
+          placeholder="0,00" min="0" step="0.01" oninput="calcularTroco()">
+        <div id="resultado-troco" class="mt-1" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:0.4rem 0.75rem">
+          <div class="d-flex justify-content-between">
+            <span style="font-size:0.78rem;color:#64748b">Troco:</span>
+            <span id="valor-troco" style="font-weight:700;color:#15803d;font-size:0.9rem"></span>
+          </div>
+        </div>
+        <div id="troco-negativo" class="mt-1" style="display:none;background:#fff1f1;border:1px solid #fecaca;border-radius:6px;padding:0.4rem 0.75rem">
+          <span style="font-size:0.78rem;color:#dc2626;font-weight:600">
+            <i class="bi bi-exclamation-circle me-1"></i>Valor insuficiente!
+          </span>
+        </div>
+      </div>
     </div>
 
     <div class="pdv-card p-3 mb-3">
@@ -396,9 +413,38 @@ function selecionarForma(btn) {
   btn.classList.add('selected');
   formaPagamento = btn.dataset.forma;
   const isFiado = formaPagamento === 'fiado';
+  const isDinheiro = formaPagamento === 'dinheiro';
+
   document.getElementById('campo-fiado').style.display = isFiado ? 'block' : 'none';
   document.getElementById('bloco-cliente').style.display = isFiado ? 'block' : 'none';
+  document.getElementById('campo-troco').style.display = isDinheiro ? 'block' : 'none';
+
   if (!isFiado) document.getElementById('sel-cliente').value = '';
+  if (!isDinheiro) {
+    document.getElementById('valor-recebido').value = '';
+    document.getElementById('resultado-troco').style.display = 'none';
+    document.getElementById('troco-negativo').style.display = 'none';
+  }
+}
+
+function calcularTroco() {
+  const subtotal = carrinho.reduce((s,i) => s + i.preco*i.quantidade, 0);
+  const desconto = parseFloat(document.getElementById('desconto').value)||0;
+  const total = Math.max(0, subtotal - desconto);
+  const recebido = parseFloat(document.getElementById('valor-recebido').value)||0;
+  const troco = recebido - total;
+
+  document.getElementById('resultado-troco').style.display = 'none';
+  document.getElementById('troco-negativo').style.display = 'none';
+
+  if (recebido > 0) {
+    if (troco >= 0) {
+      document.getElementById('valor-troco').textContent = 'R$ ' + troco.toFixed(2).replace('.', ',');
+      document.getElementById('resultado-troco').style.display = 'block';
+    } else {
+      document.getElementById('troco-negativo').style.display = 'block';
+    }
+  }
 }
 
 function finalizarVenda() {
