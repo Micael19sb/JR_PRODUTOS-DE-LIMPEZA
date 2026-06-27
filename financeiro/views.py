@@ -6,97 +6,75 @@ from django.db.models import Sum
 from decimal import Decimal
 from datetime import date, timedelta
 
-from .models import ContaReceber, Despesa, FechamentoCaixa
+from .models import MovimentoCaixa, ContaReceber, Despesa, FechamentoCaixa
 from vendas.models import Venda
-
-
-def get_periodo(request):
-    hoje = date.today()
-    periodo = request.GET.get('periodo', 'mes')
-    if periodo == 'hoje':
-        inicio = hoje
-        fim = hoje
-    elif periodo == 'semana':
-        inicio = hoje - timedelta(days=hoje.weekday())
-        fim = hoje
-    elif periodo == 'mes':
-        inicio = hoje.replace(day=1)
-        fim = hoje
-    else:
-        inicio = hoje.replace(day=1)
-        fim = hoje
-    return inicio, fim, periodo
 
 
 @login_required
 def lista(request):
+    """Painel financeiro principal."""
     hoje = date.today()
-    inicio, fim, periodo = get_periodo(request)
+    inicio_mes = hoje.replace(day=1)
 
-    contas_pendentes = ContaReceber.objects.filter(pago=False).select_related('cliente').order_by('vencimento')
-    total_pendente = contas_pendentes.aggregate(t=Sum('valor'))['t'] or Decimal('0')
+    # Saldo atual do caixa (soma de todos os movimentos)
+    entradas = MovimentoCaixa.objects.filter(tipo='entrada').aggregate(t=Sum('valor'))['t'] or Decimal('0')
+    saidas = MovimentoCaixa.objects.filter(tipo='saida').aggregate(t=Sum('valor'))['t'] or Decimal('0')
+    saldo_atual = entradas - saidas
+
+    # Contas a receber pendentes
+    contas_pendentes = ContaReceber.objects.exclude(status='quitado').select_related('cliente').order_by('vencimento')
+    total_a_receber = sum(c.valor_pendente for c in contas_pendentes)
     contas_vencidas = [c for c in contas_pendentes if c.vencida]
 
-    vendas = Venda.objects.filter(
-        status='concluida',
-        criada_em__date__gte=inicio,
-        criada_em__date__lte=fim,
-    )
-    total_entradas = sum(v.total for v in vendas)
+    # Despesas do mês
+    despesas_mes = Despesa.objects.filter(data__gte=inicio_mes, pago=True)
+    total_despesas_mes = despesas_mes.aggregate(t=Sum('valor'))['t'] or Decimal('0')
 
-    por_pagamento = {}
-    for v in vendas:
-        forma = v.get_forma_pagamento_display()
-        por_pagamento[forma] = por_pagamento.get(forma, Decimal('0')) + v.total
+    # Entradas do mês
+    entradas_mes = MovimentoCaixa.objects.filter(tipo='entrada', data__gte=inicio_mes).aggregate(t=Sum('valor'))['t'] or Decimal('0')
+    saidas_mes = MovimentoCaixa.objects.filter(tipo='saida', data__gte=inicio_mes).aggregate(t=Sum('valor'))['t'] or Decimal('0')
+    saldo_mes = entradas_mes - saidas_mes
 
-    despesas = Despesa.objects.filter(data__gte=inicio, data__lte=fim)
-    total_despesas = despesas.aggregate(t=Sum('valor'))['t'] or Decimal('0')
-    lucro = total_entradas - total_despesas
-    ultimas_despesas = Despesa.objects.order_by('-data')[:10]
+    # Últimas movimentações
+    ultimas_movimentacoes = MovimentoCaixa.objects.select_related('usuario', 'venda', 'conta_receber').order_by('-criado_em')[:15]
+
+    # Últimas despesas
+    ultimas_despesas = Despesa.objects.order_by('-data')[:8]
 
     # Histórico mensal
-    todas_vendas = Venda.objects.filter(status='concluida').order_by('criada_em')
+    todos_movimentos = MovimentoCaixa.objects.all()
     historico_mensal = {}
-    for v in todas_vendas:
-        chave = v.criada_em.strftime('%Y-%m')
+    for m in todos_movimentos:
+        chave = m.data.strftime('%Y-%m')
         if chave not in historico_mensal:
             meses = ['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
             historico_mensal[chave] = {
-                'ano': v.criada_em.year,
-                'mes': v.criada_em.month,
-                'mes_nome': meses[v.criada_em.month - 1] + '/' + str(v.criada_em.year),
-                'total_vendas': Decimal('0'),
-                'qtd_vendas': 0,
-                'total_despesas': Decimal('0'),
-                'lucro': Decimal('0'),
+                'ano': m.data.year, 'mes': m.data.month,
+                'mes_nome': meses[m.data.month - 1] + '/' + str(m.data.year),
+                'entradas': Decimal('0'), 'saidas': Decimal('0'),
             }
-        historico_mensal[chave]['total_vendas'] += v.total
-        historico_mensal[chave]['qtd_vendas'] += 1
-
-    todas_despesas = Despesa.objects.all()
-    for d in todas_despesas:
-        chave = d.data.strftime('%Y-%m')
-        if chave in historico_mensal:
-            historico_mensal[chave]['total_despesas'] += d.valor
+        if m.tipo == 'entrada':
+            historico_mensal[chave]['entradas'] += m.valor
+        else:
+            historico_mensal[chave]['saidas'] += m.valor
 
     for chave in historico_mensal:
         h = historico_mensal[chave]
-        h['lucro'] = h['total_vendas'] - h['total_despesas']
+        h['saldo'] = h['entradas'] - h['saidas']
 
     historico_lista = sorted(historico_mensal.values(), key=lambda x: (x['ano'], x['mes']), reverse=True)
 
     context = {
         'hoje': hoje,
-        'periodo': periodo,
-        'inicio': inicio,
-        'fim': fim,
+        'saldo_atual': saldo_atual,
+        'total_a_receber': total_a_receber,
         'contas_pendentes': contas_pendentes,
-        'total_pendente': total_pendente,
         'contas_vencidas': len(contas_vencidas),
-        'total_entradas': total_entradas,
-        'por_pagamento': por_pagamento,
-        'total_despesas': total_despesas,
-        'lucro': lucro,
+        'total_despesas_mes': total_despesas_mes,
+        'entradas_mes': entradas_mes,
+        'saidas_mes': saidas_mes,
+        'saldo_mes': saldo_mes,
+        'ultimas_movimentacoes': ultimas_movimentacoes,
         'ultimas_despesas': ultimas_despesas,
         'historico_mensal': historico_lista,
         'categorias': Despesa.CATEGORIA_CHOICES,
@@ -106,6 +84,7 @@ def lista(request):
 
 @login_required
 def fluxo_caixa(request):
+    """Fluxo de caixa do dia."""
     hoje = date.today()
     data_str = request.GET.get('data', str(hoje))
     try:
@@ -113,138 +92,125 @@ def fluxo_caixa(request):
     except:
         data_sel = hoje
 
-    # Caixa sempre começa zerado
-    saldo_abertura = Decimal('0')
-
-    # Vendas do dia
-    vendas_dia = Venda.objects.filter(
-        status='concluida',
-        criada_em__date=data_sel
-    ).order_by('criada_em')
-
-    # Despesas do dia
-    despesas_dia = Despesa.objects.filter(data=data_sel).order_by('criada_em')
-
-    # Montar movimentacoes em ordem cronologica
-    movimentacoes = []
-    for v in vendas_dia:
-        if v.forma_pagamento == 'dinheiro' and v.valor_recebido:
-            # Entrada: valor recebido
-            movimentacoes.append({
-                'tipo': 'entrada',
-                'hora': v.criada_em.strftime('%H:%M'),
-                'descricao': f'Venda #{v.pk} — Dinheiro (recebido)',
-                'cliente': v.cliente.nome if v.cliente else 'Consumidor final',
-                'valor': v.valor_recebido,
-            })
-            # Saida: troco
-            if v.troco and v.troco > 0:
-                movimentacoes.append({
-                    'tipo': 'saida',
-                    'hora': v.criada_em.strftime('%H:%M'),
-                    'descricao': f'Troco — Venda #{v.pk}',
-                    'cliente': 'Troco devolvido',
-                    'valor': v.troco,
-                })
-        else:
-            movimentacoes.append({
-                'tipo': 'entrada',
-                'hora': v.criada_em.strftime('%H:%M'),
-                'descricao': f'Venda #{v.pk} — {v.get_forma_pagamento_display()}',
-                'cliente': v.cliente.nome if v.cliente else 'Consumidor final',
-                'valor': v.total,
-            })
-    for d in despesas_dia:
-        movimentacoes.append({
-            'tipo': 'saida',
-            'hora': d.criada_em.strftime('%H:%M') if hasattr(d, 'criada_em') else '00:00',
-            'descricao': d.descricao,
-            'cliente': d.get_categoria_display(),
-            'valor': d.valor,
-        })
-
-    movimentacoes.sort(key=lambda x: x['hora'])
-
-    # Totais
-    total_entradas = sum(
-        v.valor_recebido if (v.forma_pagamento == 'dinheiro' and v.valor_recebido) else v.total
-        for v in vendas_dia
-    )
-    total_troco = sum(v.troco for v in vendas_dia if v.forma_pagamento == 'dinheiro' and v.troco)
-    total_saidas = (despesas_dia.aggregate(t=Sum('valor'))['t'] or Decimal('0')) + total_troco
+    movimentos = MovimentoCaixa.objects.filter(data=data_sel).select_related('usuario', 'venda', 'conta_receber').order_by('criado_em')
+    total_entradas = movimentos.filter(tipo='entrada').aggregate(t=Sum('valor'))['t'] or Decimal('0')
+    total_saidas = movimentos.filter(tipo='saida').aggregate(t=Sum('valor'))['t'] or Decimal('0')
     saldo_dia = total_entradas - total_saidas
-    saldo_acumulado = saldo_dia
-
-    # Fechamento do dia
-    fechamento_hoje = FechamentoCaixa.objects.filter(data=data_sel).first()
+    fechamento = FechamentoCaixa.objects.filter(data=data_sel).first()
 
     # Por forma de pagamento
     por_forma = {}
-    for v in vendas_dia:
-        forma = v.get_forma_pagamento_display()
-        por_forma[forma] = por_forma.get(forma, Decimal('0')) + v.total
+    for m in movimentos.filter(tipo='entrada'):
+        forma = m.forma_pagamento or 'Outros'
+        por_forma[forma] = por_forma.get(forma, Decimal('0')) + m.valor
 
     context = {
         'hoje': hoje,
         'data_sel': data_sel,
-        'saldo_abertura': saldo_abertura,
-        'movimentacoes': movimentacoes,
+        'movimentos': movimentos,
         'total_entradas': total_entradas,
         'total_saidas': total_saidas,
         'saldo_dia': saldo_dia,
-        'saldo_acumulado': saldo_acumulado,
-        'fechamento_hoje': fechamento_hoje,
+        'fechamento': fechamento,
         'por_forma': por_forma,
-        'qtd_vendas': vendas_dia.count(),
     }
     return render(request, 'financeiro/fluxo_caixa.html', context)
 
 
 @login_required
-def fechar_caixa(request):
-    if request.method == 'POST':
-        data_str = request.POST.get('data')
-        saldo_abertura = Decimal(request.POST.get('saldo_abertura', '0').replace(',', '.'))
-        total_entradas = Decimal(request.POST.get('total_entradas', '0').replace(',', '.'))
-        total_despesas = Decimal(request.POST.get('total_despesas', '0').replace(',', '.'))
-        observacao = request.POST.get('observacao', '')
+def previsao_caixa(request):
+    """Previsão de caixa para os próximos 30 dias."""
+    hoje = date.today()
+    fim = hoje + timedelta(days=30)
 
-        data_caixa = date.fromisoformat(data_str)
-        saldo_fechamento = saldo_abertura + total_entradas - total_despesas
+    # Saldo atual
+    entradas = MovimentoCaixa.objects.filter(tipo='entrada').aggregate(t=Sum('valor'))['t'] or Decimal('0')
+    saidas = MovimentoCaixa.objects.filter(tipo='saida').aggregate(t=Sum('valor'))['t'] or Decimal('0')
+    saldo_atual = entradas - saidas
 
-        fechamento, criado = FechamentoCaixa.objects.get_or_create(
-            data=data_caixa,
-            defaults={
-                'saldo_abertura': saldo_abertura,
-                'total_entradas': total_entradas,
-                'total_despesas': total_despesas,
-                'saldo_fechamento': saldo_fechamento,
-                'observacao': observacao,
-                'fechado': True,
-                'criado_por': request.user,
-            }
-        )
-        if not criado:
-            fechamento.saldo_abertura = saldo_abertura
-            fechamento.total_entradas = total_entradas
-            fechamento.total_despesas = total_despesas
-            fechamento.saldo_fechamento = saldo_fechamento
-            fechamento.observacao = observacao
-            fechamento.fechado = True
-            fechamento.save()
+    # Contas a receber previstas
+    contas_previstas = ContaReceber.objects.exclude(status='quitado').filter(
+        vencimento__gte=hoje, vencimento__lte=fim
+    ).select_related('cliente').order_by('vencimento')
+    total_previsto_receber = sum(c.valor_pendente for c in contas_previstas)
 
-        messages.success(request, f'Caixa do dia {data_caixa.strftime("%d/%m/%Y")} fechado! Saldo: R$ {saldo_fechamento}')
-    return redirect(f'/financeiro/fluxo/?data={data_str}')
+    # Despesas futuras não pagas
+    despesas_futuras = Despesa.objects.filter(data__gte=hoje, data__lte=fim, pago=False).order_by('data')
+    total_previsto_pagar = despesas_futuras.aggregate(t=Sum('valor'))['t'] or Decimal('0')
+
+    # Saldo projetado
+    saldo_projetado = saldo_atual + total_previsto_receber - total_previsto_pagar
+
+    # Timeline dos próximos 30 dias
+    timeline = []
+    saldo_acum = saldo_atual
+    for i in range(30):
+        dia = hoje + timedelta(days=i)
+        entradas_dia = sum(c.valor_pendente for c in contas_previstas if c.vencimento == dia)
+        saidas_dia = sum(d.valor for d in despesas_futuras if d.data == dia)
+        saldo_acum += entradas_dia - saidas_dia
+        if entradas_dia > 0 or saidas_dia > 0:
+            timeline.append({
+                'data': dia,
+                'entradas': entradas_dia,
+                'saidas': saidas_dia,
+                'saldo': saldo_acum,
+            })
+
+    context = {
+        'hoje': hoje,
+        'fim': fim,
+        'saldo_atual': saldo_atual,
+        'contas_previstas': contas_previstas,
+        'total_previsto_receber': total_previsto_receber,
+        'despesas_futuras': despesas_futuras,
+        'total_previsto_pagar': total_previsto_pagar,
+        'saldo_projetado': saldo_projetado,
+        'timeline': timeline,
+    }
+    return render(request, 'financeiro/previsao.html', context)
 
 
 @login_required
-def dar_baixa(request, pk):
+def receber_pagamento(request, pk):
+    """Registra pagamento parcial ou total de uma conta a receber."""
     conta = get_object_or_404(ContaReceber, pk=pk)
+
     if request.method == 'POST':
-        conta.pago = True
-        conta.data_pagamento = date.today()
+        valor_str = request.POST.get('valor', '0').replace(',', '.')
+        try:
+            valor = Decimal(valor_str)
+        except:
+            messages.error(request, 'Valor invalido.')
+            return redirect('financeiro_lista')
+
+        if valor <= 0 or valor > conta.valor_pendente:
+            messages.error(request, f'Valor deve ser entre R$ 0,01 e R$ {conta.valor_pendente}.')
+            return redirect('financeiro_lista')
+
+        # Registrar entrada no caixa
+        MovimentoCaixa.objects.create(
+            data=date.today(),
+            tipo='entrada',
+            categoria='recebimento_fiado',
+            descricao=f'Recebimento de {conta.cliente.nome} — {conta.descricao}',
+            valor=valor,
+            forma_pagamento=request.POST.get('forma_pagamento', 'dinheiro'),
+            usuario=request.user,
+            conta_receber=conta,
+        )
+
+        # Atualizar conta
+        conta.valor_pago += valor
+        if conta.valor_pago >= conta.valor_total:
+            conta.status = 'quitado'
+            conta.valor_pago = conta.valor_total
+        else:
+            conta.status = 'parcial'
         conta.save()
-        messages.success(request, f'Pagamento de {conta.cliente.nome} confirmado! R$ {conta.valor}')
+
+        messages.success(request, f'Pagamento de R$ {valor} de {conta.cliente.nome} registrado!')
+
     return redirect('financeiro_lista')
 
 
@@ -253,22 +219,36 @@ def nova_despesa(request):
     if request.method == 'POST':
         descricao = request.POST.get('descricao', '').strip()
         categoria = request.POST.get('categoria', 'outros')
-        valor = request.POST.get('valor', '0').replace(',', '.')
+        valor_str = request.POST.get('valor', '0').replace(',', '.')
         data_desp = request.POST.get('data', str(date.today()))
         observacao = request.POST.get('observacao', '').strip()
+        pago = request.POST.get('pago') == 'on'
 
-        if not descricao or not valor:
-            messages.error(request, 'Preencha a descricao e o valor.')
+        if not descricao or not valor_str:
+            messages.error(request, 'Preencha descricao e valor.')
             return redirect('financeiro_lista')
 
-        Despesa.objects.create(
-            descricao=descricao,
-            categoria=categoria,
-            valor=Decimal(valor),
-            data=data_desp,
-            observacao=observacao,
+        valor = Decimal(valor_str)
+        despesa = Despesa.objects.create(
+            descricao=descricao, categoria=categoria,
+            valor=valor, data=data_desp,
+            pago=pago, observacao=observacao,
             criada_por=request.user,
         )
+
+        # Se já pago, registrar saída no caixa
+        if pago:
+            MovimentoCaixa.objects.create(
+                data=date.fromisoformat(data_desp),
+                tipo='saida',
+                categoria='despesa',
+                descricao=descricao,
+                valor=valor,
+                forma_pagamento='dinheiro',
+                usuario=request.user,
+                despesa_ref=despesa,
+            )
+
         messages.success(request, f'Despesa "{descricao}" registrada!')
     return redirect('financeiro_lista')
 
@@ -277,6 +257,54 @@ def nova_despesa(request):
 def excluir_despesa(request, pk):
     if request.method == 'POST':
         despesa = get_object_or_404(Despesa, pk=pk)
+        # Remover movimento de caixa relacionado
+        MovimentoCaixa.objects.filter(despesa_ref=despesa).delete()
         despesa.delete()
         messages.success(request, 'Despesa excluida.')
+    return redirect('financeiro_lista')
+
+
+@login_required
+def fechar_caixa(request):
+    if request.method == 'POST':
+        data_str = request.POST.get('data')
+        observacao = request.POST.get('observacao', '')
+        data_caixa = date.fromisoformat(data_str)
+
+        movimentos = MovimentoCaixa.objects.filter(data=data_caixa)
+        total_entradas = movimentos.filter(tipo='entrada').aggregate(t=Sum('valor'))['t'] or Decimal('0')
+        total_saidas = movimentos.filter(tipo='saida').aggregate(t=Sum('valor'))['t'] or Decimal('0')
+        saldo = total_entradas - total_saidas
+
+        FechamentoCaixa.objects.update_or_create(
+            data=data_caixa,
+            defaults={
+                'saldo_abertura': Decimal('0'),
+                'total_entradas': total_entradas,
+                'total_despesas': total_saidas,
+                'saldo_fechamento': saldo,
+                'observacao': observacao,
+                'fechado': True,
+                'criado_por': request.user,
+            }
+        )
+        messages.success(request, f'Caixa de {data_caixa.strftime("%d/%m/%Y")} fechado! Saldo: R$ {saldo}')
+    return redirect(f'/financeiro/fluxo/?data={data_str}')
+
+
+@login_required
+def enviar_relatorio(request):
+    if request.method == 'POST':
+        from .relatorio import gerar_relatorio_mensal
+        mes = int(request.POST.get('mes', date.today().month))
+        ano = int(request.POST.get('ano', date.today().year))
+        email_destino = request.POST.get('email', '').strip()
+        if not email_destino:
+            messages.error(request, 'Informe um email.')
+            return redirect('financeiro_lista')
+        try:
+            dados = gerar_relatorio_mensal(ano, mes, email_destino)
+            messages.success(request, f'Relatorio enviado para {email_destino}!')
+        except Exception as e:
+            messages.error(request, f'Erro: {str(e)}')
     return redirect('financeiro_lista')
