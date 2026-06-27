@@ -1,0 +1,515 @@
+{% extends 'base/base.html' %}
+{% block title %}PDV — Nova Venda{% endblock %}
+{% block page_title %}PDV — Nova Venda{% endblock %}
+
+{% block extra_css %}
+<style>
+  .pdv-layout { display: grid; grid-template-columns: 1fr 360px; gap: 1.25rem; }
+
+  /* Busca */
+  .search-results {
+    position: absolute; z-index: 200; width: 100%;
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    max-height: 300px; overflow-y: auto;
+    top: calc(100% + 4px); left: 0;
+  }
+  .search-result-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.65rem 0.85rem; cursor: pointer; font-size: 0.85rem;
+    border-bottom: 1px solid #f1f5f9; transition: background 0.1s;
+  }
+  .search-result-item:hover { background: #f0f9ff; }
+  .search-result-item:last-child { border-bottom: none; }
+
+  /* Grid de produtos */
+  .categoria-titulo {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #64748b;
+    padding: 0.5rem 0 0.4rem; margin-top: 0.75rem;
+    border-bottom: 1px solid #e2e8f0; margin-bottom: 0.5rem;
+  }
+  .produtos-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.5rem;
+  }
+  .produto-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 0.75rem; cursor: pointer; transition: all 0.15s;
+    display: flex; flex-direction: column; gap: 0.25rem;
+  }
+  .produto-card:hover { border-color: #3b82f6; background: #eff6ff; box-shadow: 0 2px 8px rgba(59,130,246,0.1); }
+  .produto-card:active { transform: scale(0.97); }
+  .produto-card .p-nome { font-size: 0.8rem; font-weight: 600; color: #1e293b; line-height: 1.3; }
+  .produto-card .p-unidade {
+    display: inline-block; font-size: 0.68rem; font-weight: 600;
+    background: #f1f5f9; color: #475569; border-radius: 4px;
+    padding: 0.1rem 0.4rem; margin-top: 0.1rem; width: fit-content;
+  }
+  .produto-card .p-preco { font-size: 0.88rem; font-weight: 700; color: #1e40af; margin-top: auto; padding-top: 0.35rem; }
+  .produto-card .p-estoque { font-size: 0.68rem; color: #94a3b8; }
+  .produto-card.sem-estoque { opacity: 0.5; pointer-events: none; }
+
+  /* Carrinho */
+  .carrinho-item {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.6rem 0; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem;
+  }
+  .carrinho-item:last-child { border-bottom: none; }
+  .item-nome { flex: 1; font-weight: 500; color: #1e293b; }
+  .item-qtd input {
+    width: 55px; border: 1px solid #e2e8f0; border-radius: 6px;
+    padding: 0.25rem 0.4rem; text-align: center; font-size: 0.8rem;
+  }
+  .item-preco { width: 80px; text-align: right; color: #1e40af; font-weight: 600; }
+  .btn-remover { color: #ef4444; border: none; background: none; cursor: pointer; }
+
+  /* Formas pagamento */
+  .forma-btn {
+    border: 2px solid #e2e8f0; border-radius: 8px; padding: 0.5rem 0.75rem;
+    background: #fff; cursor: pointer; font-size: 0.8rem; font-weight: 500;
+    transition: all 0.15s; text-align: center;
+  }
+  .forma-btn:hover { border-color: #3b82f6; color: #1e40af; }
+  .forma-btn.selected { border-color: #1e40af; background: #eff6ff; color: #1e40af; }
+  .btn-finalizar {
+    background: #1e40af; color: #fff; border: none;
+    border-radius: 10px; padding: 0.9rem; width: 100%;
+    font-size: 1rem; font-weight: 700; cursor: pointer; transition: background 0.15s;
+  }
+  .btn-finalizar:hover { background: #1d4ed8; }
+  .btn-finalizar:disabled { background: #94a3b8; cursor: not-allowed; }
+  #campo-fiado { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pdv-layout">
+
+  <!-- Coluna esquerda: busca + grid de produtos -->
+  <div>
+    <!-- Busca -->
+    <div class="position-relative mb-3">
+      <div class="input-group">
+        <span class="input-group-text bg-white border-end-0">
+          <i class="bi bi-search text-muted"></i>
+        </span>
+        <input type="text" id="busca-produto"
+          class="form-control border-start-0 ps-0"
+          placeholder="Buscar produto por nome ou código..."
+          autocomplete="off">
+        <button class="btn btn-outline-secondary" onclick="limparBusca()" style="font-size:0.8rem">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      <div id="resultados" class="search-results" style="display:none"></div>
+    </div>
+
+    <!-- Grid de produtos por categoria -->
+    <div id="grade-produtos">
+      {% regroup produtos by categoria as por_categoria %}
+      {% for grupo in por_categoria %}
+        <div class="categoria-titulo">
+          <i class="bi bi-tag me-1"></i>{{ grupo.grouper.nome|default:"Sem categoria" }}
+        </div>
+        <div class="produtos-grid">
+          {% for p in grupo.list %}
+            <div class="produto-card {% if p.estoque_disp <= 0 %}sem-estoque{% endif %}"
+              onclick="adicionarItem({{ p.pk }},'{{ p.nome|escapejs }}',{{ p.preco_venda }},'{{ p.get_unidade_display }}',{{ p.estoque_disp }})"
+              title="{{ p.nome }}">
+              <div class="p-nome">{{ p.nome }}</div>
+              <span class="p-unidade">{{ p.get_unidade_display }}</span>
+              <div class="p-preco">R$ {{ p.preco_venda|floatformat:2 }}</div>
+              <div class="p-estoque">
+                {% if p.estoque_disp > 0 %}
+                  Estoque: {{ p.estoque_disp }}
+                {% else %}
+                  Sem estoque
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% empty %}
+        <div class="text-center text-muted py-4">
+          <i class="bi bi-box-seam d-block mb-2" style="font-size:2rem"></i>
+          Nenhum produto cadastrado ainda.
+          <a href="{% url 'produto_novo' %}" class="d-block mt-2">Cadastrar produtos</a>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Coluna direita: carrinho -->
+  <div>
+    <div class="pdv-card p-3 mb-3">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="fw-600" style="font-size:0.85rem">Carrinho</span>
+        <button class="btn btn-sm btn-outline-danger" onclick="limparCarrinho()" style="font-size:0.75rem;padding:0.2rem 0.5rem">
+          <i class="bi bi-trash"></i> Limpar
+        </button>
+      </div>
+      <div id="carrinho-items">
+        <div class="text-center text-muted py-3" style="font-size:0.82rem">
+          <i class="bi bi-cart3 d-block mb-1" style="font-size:1.5rem"></i>
+          Nenhum item adicionado
+        </div>
+      </div>
+    </div>
+
+    <div class="pdv-card p-3 mb-3" id="bloco-cliente" style="display:none">
+      <label class="form-label" style="font-size:0.78rem;font-weight:600">
+        <i class="bi bi-person me-1"></i>Cliente a prazo <span class="text-danger">*</span>
+      </label>
+      <select id="sel-cliente" class="form-select form-select-sm">
+        <option value="">Selecione o cliente...</option>
+        {% for c in clientes %}
+          <option value="{{ c.pk }}" {% if c.tem_divida %}style="color:#dc2626;font-weight:600"{% endif %}>
+            {{ c.nome }}{% if c.tem_divida %} — Deve R$ {{ c.saldo_devedor|floatformat:2 }}{% endif %}
+          </option>
+        {% endfor %}
+      </select>
+      {% if clientes %}
+      <div style="font-size:0.72rem;color:#94a3b8;margin-top:0.3rem">
+        <i class="bi bi-info-circle me-1"></i>Clientes em vermelho já possuem saldo devedor
+      </div>
+      {% endif %}
+      <button type="button" onclick="abrirModalCliente()" style="background:none;border:none;padding:0;font-size:0.75rem;color:#3b82f6;margin-top:0.4rem;cursor:pointer">
+        <i class="bi bi-plus-circle me-1"></i>Cadastrar novo cliente
+      </button>
+    </div>
+
+    <div class="pdv-card p-3 mb-3">
+      <div class="fw-600 mb-2" style="font-size:0.78rem">Forma de pagamento</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+        <button class="forma-btn" data-forma="dinheiro" onclick="selecionarForma(this)">
+          <i class="bi bi-cash me-1"></i>Dinheiro
+        </button>
+        <button class="forma-btn selected" data-forma="pix" onclick="selecionarForma(this)">
+          <i class="bi bi-qr-code me-1"></i>PIX
+        </button>
+        <button class="forma-btn" data-forma="cartao_debito" onclick="selecionarForma(this)">
+          <i class="bi bi-credit-card me-1"></i>Débito
+        </button>
+        <button class="forma-btn" data-forma="cartao_credito" onclick="selecionarForma(this)">
+          <i class="bi bi-credit-card-2-front me-1"></i>Crédito
+        </button>
+        <button class="forma-btn" data-forma="fiado" onclick="selecionarForma(this)" style="grid-column:span 2">
+          <i class="bi bi-clock-history me-1"></i>Fiado / Prazo
+        </button>
+      </div>
+      <div id="campo-fiado" class="mt-2">
+        <label style="font-size:0.75rem;color:#64748b">Vencimento</label>
+        <input type="date" id="vencimento-fiado" class="form-control form-control-sm">
+      </div>
+    </div>
+
+    <div class="pdv-card p-3 mb-3">
+      <label class="form-label" style="font-size:0.78rem;font-weight:600">Desconto (R$)</label>
+      <input type="number" id="desconto" class="form-control form-control-sm"
+        placeholder="0,00" min="0" step="0.01" value="0" oninput="atualizarTotal()">
+    </div>
+
+    <div class="pdv-total mb-3">
+      <div class="total-label">Total da venda</div>
+      <div class="total-value" id="total-display">R$ 0,00</div>
+      <div style="font-size:0.75rem;color:#475569" id="desconto-display"></div>
+    </div>
+
+    <button class="btn-finalizar" id="btn-finalizar" onclick="finalizarVenda()" disabled>
+      <i class="bi bi-check-circle me-2"></i>Finalizar venda
+    </button>
+  </div>
+</div>
+
+
+<!-- Modal cadastro de cliente -->
+<div class="modal fade" id="modalNovoCliente" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-body p-4">
+
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="mb-0" style="font-size:1rem;font-weight:700">
+            <i class="bi bi-person-plus me-2 text-primary"></i>Novo cliente a prazo
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div id="msg-cliente-sucesso" style="display:none" class="alert alert-success py-2 px-3 mb-3">
+          <i class="bi bi-check-circle me-2"></i><span id="msg-cliente-texto"></span>
+        </div>
+        <div id="msg-cliente-erro" style="display:none" class="alert alert-danger py-2 px-3 mb-3">
+          <i class="bi bi-exclamation-circle me-2"></i><span id="msg-cliente-erro-texto"></span>
+        </div>
+
+        <div class="row g-3" id="form-cliente-campos">
+          <div class="col-12">
+            <label style="font-size:0.82rem;font-weight:600">Nome completo <span class="text-danger">*</span></label>
+            <input type="text" id="novo-cliente-nome" class="form-control mt-1"
+              placeholder="Ex: João da Silva" autofocus>
+          </div>
+          <div class="col-6">
+            <label style="font-size:0.82rem;font-weight:600">Telefone / WhatsApp</label>
+            <input type="text" id="novo-cliente-telefone" class="form-control mt-1"
+              placeholder="(00) 90000-0000">
+          </div>
+          <div class="col-6">
+            <label style="font-size:0.82rem;font-weight:600">CPF / CNPJ</label>
+            <input type="text" id="novo-cliente-cpf" class="form-control mt-1"
+              placeholder="000.000.000-00">
+          </div>
+          <div class="col-12">
+            <label style="font-size:0.82rem;font-weight:600">Endereço</label>
+            <input type="text" id="novo-cliente-endereco" class="form-control mt-1"
+              placeholder="Rua, número, bairro...">
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+          <button class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-primary flex-fill" id="btn-salvar-cliente" onclick="salvarNovoCliente()">
+            <i class="bi bi-check-lg me-1"></i>Cadastrar cliente
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal sucesso -->
+<div class="modal fade" id="modalSucesso" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-body text-center p-4">
+        <div style="width:56px;height:56px;background:#d1fae5;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;color:#065f46">
+          <i class="bi bi-check-lg"></i>
+        </div>
+        <h5 class="fw-700 mb-1">Venda finalizada!</h5>
+        <div class="text-muted mb-1" style="font-size:0.85rem" id="modal-total"></div>
+        <div class="text-muted mb-3" style="font-size:0.78rem" id="modal-venda-id"></div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary flex-fill btn-sm" onclick="novaVenda()">Nova venda</button>
+          <a id="btn-ver-venda" href="#" class="btn btn-primary flex-fill btn-sm">Ver detalhes</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = '{{ csrf_token }}';
+const LOJA_ID = {{ loja.pk }};
+let carrinho = [];
+let formaPagamento = 'pix';
+
+// Busca
+let timer;
+document.getElementById('busca-produto').addEventListener('input', function() {
+  clearTimeout(timer);
+  const q = this.value.trim();
+  if (!q) { document.getElementById('resultados').style.display = 'none'; return; }
+  timer = setTimeout(() => buscarProduto(q), 250);
+});
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#busca-produto') && !e.target.closest('#resultados'))
+    document.getElementById('resultados').style.display = 'none';
+});
+
+function limparBusca() {
+  document.getElementById('busca-produto').value = '';
+  document.getElementById('resultados').style.display = 'none';
+}
+
+function buscarProduto(q) {
+  fetch(`/vendas/buscar-produto/?q=${encodeURIComponent(q)}&loja_id=${LOJA_ID}`)
+    .then(r => r.json())
+    .then(data => {
+      const div = document.getElementById('resultados');
+      if (!data.produtos.length) {
+        div.innerHTML = '<div class="p-3 text-muted text-center" style="font-size:0.82rem">Nenhum produto encontrado</div>';
+      } else {
+        div.innerHTML = data.produtos.map(p => `
+          <div class="search-result-item" onclick="adicionarItem(${p.id},'${p.nome.replace(/'/g,"\\'")}',${p.preco},'${p.unidade}',${p.estoque})">
+            <div>
+              <div style="font-weight:500">${p.nome}</div>
+              <div style="font-size:0.72rem;color:#94a3b8">${p.codigo} · ${p.unidade} · Estoque: ${p.estoque}</div>
+            </div>
+            <div style="font-weight:700;color:#1e40af">R$ ${p.preco.toFixed(2).replace('.',',')}</div>
+          </div>`).join('');
+      }
+      div.style.display = 'block';
+    });
+}
+
+function adicionarItem(id, nome, preco, unidade, estoqueDisp) {
+  document.getElementById('resultados').style.display = 'none';
+  document.getElementById('busca-produto').value = '';
+  const idx = carrinho.findIndex(i => i.produto_id === id);
+  if (idx >= 0) carrinho[idx].quantidade += 1;
+  else carrinho.push({ produto_id: id, nome, preco, unidade, quantidade: 1 });
+  renderCarrinho();
+}
+
+function renderCarrinho() {
+  const div = document.getElementById('carrinho-items');
+  if (!carrinho.length) {
+    div.innerHTML = `<div class="text-center text-muted py-3" style="font-size:0.82rem">
+      <i class="bi bi-cart3 d-block mb-1" style="font-size:1.5rem"></i>Nenhum item adicionado</div>`;
+    document.getElementById('btn-finalizar').disabled = true;
+    atualizarTotal(); return;
+  }
+  div.innerHTML = carrinho.map((item, i) => `
+    <div class="carrinho-item">
+      <div class="item-nome">
+        <div style="font-size:0.82rem">${item.nome}</div>
+        <div style="font-size:0.7rem;color:#94a3b8">R$ ${item.preco.toFixed(2).replace('.',',')} / ${item.unidade}</div>
+      </div>
+      <div class="item-qtd">
+        <input type="number" value="${item.quantidade}" min="0.01" step="0.01" onchange="alterarQtd(${i},this.value)">
+      </div>
+      <div class="item-preco">R$ ${(item.preco*item.quantidade).toFixed(2).replace('.',',')}</div>
+      <button class="btn-remover" onclick="removerItem(${i})"><i class="bi bi-x"></i></button>
+    </div>`).join('');
+  document.getElementById('btn-finalizar').disabled = false;
+  atualizarTotal();
+}
+
+function alterarQtd(i, val) { carrinho[i].quantidade = parseFloat(val)||1; renderCarrinho(); }
+function removerItem(i) { carrinho.splice(i,1); renderCarrinho(); }
+function limparCarrinho() { carrinho = []; renderCarrinho(); }
+
+function atualizarTotal() {
+  const subtotal = carrinho.reduce((s,i) => s + i.preco*i.quantidade, 0);
+  const desconto = parseFloat(document.getElementById('desconto').value)||0;
+  const total = Math.max(0, subtotal - desconto);
+  document.getElementById('total-display').textContent = `R$ ${total.toFixed(2).replace('.',',')}`;
+  const dd = document.getElementById('desconto-display');
+  dd.textContent = desconto > 0 ? `Subtotal: R$ ${subtotal.toFixed(2).replace('.',',')} · Desconto: -R$ ${desconto.toFixed(2).replace('.',',')}` : '';
+}
+
+function selecionarForma(btn) {
+  document.querySelectorAll('.forma-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  formaPagamento = btn.dataset.forma;
+  const isFiado = formaPagamento === 'fiado';
+  document.getElementById('campo-fiado').style.display = isFiado ? 'block' : 'none';
+  document.getElementById('bloco-cliente').style.display = isFiado ? 'block' : 'none';
+  if (!isFiado) document.getElementById('sel-cliente').value = '';
+}
+
+function finalizarVenda() {
+  if (!carrinho.length) { alert('Adicione pelo menos um produto.'); return; }
+  const btn = document.getElementById('btn-finalizar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processando...';
+
+  fetch('/vendas/finalizar/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+    body: JSON.stringify({
+      itens: carrinho,
+      forma_pagamento: formaPagamento,
+      cliente_id: document.getElementById('sel-cliente').value || null,
+      desconto: parseFloat(document.getElementById('desconto').value)||0,
+      vencimento_fiado: document.getElementById('vencimento-fiado').value || null,
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.sucesso) {
+      document.getElementById('modal-total').textContent = `Total: R$ ${data.total.toFixed(2).replace('.',',')}`;
+      document.getElementById('modal-venda-id').textContent = `Venda #${data.venda_id}`;
+      document.getElementById('btn-ver-venda').href = `/vendas/${data.venda_id}/`;
+      new bootstrap.Modal(document.getElementById('modalSucesso')).show();
+    } else alert('Erro: ' + data.erro);
+  })
+  .catch(() => alert('Erro de conexão.'))
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Finalizar venda';
+  });
+}
+
+function novaVenda() {
+  bootstrap.Modal.getInstance(document.getElementById('modalSucesso')).hide();
+  carrinho = [];
+  document.getElementById('desconto').value = 0;
+  document.getElementById('sel-cliente').value = '';
+  renderCarrinho();
+}
+
+function abrirModalCliente() {
+  // Limpar campos e mensagens
+  document.getElementById('novo-cliente-nome').value = '';
+  document.getElementById('novo-cliente-telefone').value = '';
+  document.getElementById('novo-cliente-cpf').value = '';
+  document.getElementById('novo-cliente-endereco').value = '';
+  document.getElementById('msg-cliente-sucesso').style.display = 'none';
+  document.getElementById('msg-cliente-erro').style.display = 'none';
+  document.getElementById('form-cliente-campos').style.display = '';
+  document.getElementById('btn-salvar-cliente').style.display = '';
+  new bootstrap.Modal(document.getElementById('modalNovoCliente')).show();
+  setTimeout(() => document.getElementById('novo-cliente-nome').focus(), 400);
+}
+
+function salvarNovoCliente() {
+  const nome = document.getElementById('novo-cliente-nome').value.trim();
+  if (!nome) {
+    document.getElementById('msg-cliente-erro-texto').textContent = 'O nome do cliente é obrigatório.';
+    document.getElementById('msg-cliente-erro').style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('btn-salvar-cliente');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+  document.getElementById('msg-cliente-erro').style.display = 'none';
+
+  fetch('/clientes/novo-ajax/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+    body: JSON.stringify({
+      nome: nome,
+      telefone: document.getElementById('novo-cliente-telefone').value.trim(),
+      cpf_cnpj: document.getElementById('novo-cliente-cpf').value.trim(),
+      endereco: document.getElementById('novo-cliente-endereco').value.trim(),
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.sucesso) {
+      // Adicionar cliente no select e selecionar automaticamente
+      const select = document.getElementById('sel-cliente');
+      const option = new Option(data.nome, data.id, true, true);
+      select.add(option);
+
+      // Mostrar mensagem de sucesso
+      document.getElementById('msg-cliente-texto').textContent = `Cliente "${data.nome}" cadastrado e selecionado!`;
+      document.getElementById('msg-cliente-sucesso').style.display = 'block';
+      document.getElementById('form-cliente-campos').style.display = 'none';
+      document.getElementById('btn-salvar-cliente').style.display = 'none';
+
+      // Fechar modal após 2 segundos
+      setTimeout(() => {
+        bootstrap.Modal.getInstance(document.getElementById('modalNovoCliente')).hide();
+      }, 2000);
+    } else {
+      document.getElementById('msg-cliente-erro-texto').textContent = data.erro || 'Erro ao cadastrar cliente.';
+      document.getElementById('msg-cliente-erro').style.display = 'block';
+    }
+  })
+  .catch(() => {
+    document.getElementById('msg-cliente-erro-texto').textContent = 'Erro de conexão. Tente novamente.';
+    document.getElementById('msg-cliente-erro').style.display = 'block';
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Cadastrar cliente';
+  });
+}
+</script>
+{% endblock %}

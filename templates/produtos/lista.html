@@ -1,0 +1,105 @@
+{% extends 'base/base.html' %}
+{% block title %}Produtos{% endblock %}
+{% block page_title %}Produtos{% endblock %}
+
+
+
+{% block content %}
+
+<!-- Filtros -->
+<div class="pdv-card p-3 mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label" style="font-size:0.78rem;font-weight:600">Buscar</label>
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Nome ou código...">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" style="font-size:0.78rem;font-weight:600">Categoria</label>
+      <select name="categoria" class="form-select form-select-sm">
+        <option value="">Todas</option>
+        {% for cat in categorias %}
+          <option value="{{ cat.pk }}" {% if cat.pk|stringformat:"i" == categoria_id %}selected{% endif %}>{{ cat.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <button type="submit" class="btn btn-sm btn-primary w-100">
+        <i class="bi bi-search me-1"></i>Filtrar
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Legenda -->
+<div class="d-flex align-items-center gap-2 mb-2">
+  <span style="font-size:0.78rem;color:#64748b">
+    🔥 Produtos com a categoria <strong>Inflamável</strong> são sinalizados como alto risco
+  </span>
+</div>
+
+<!-- Tabela -->
+<div class="table-card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Nome</th>
+        <th>Categoria</th>
+        <th>Unidade</th>
+        <th>Preço custo</th>
+        <th>Preço venda</th>
+        <th>Margem</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for produto in produtos %}
+      <tr>
+        <td style="font-size:0.78rem;color:#64748b">{{ produto.codigo }}</td>
+        <td style="font-weight:500">
+          {{ produto.nome }}
+          {% if produto.categoria.nome == "Inflamavel" or produto.categoria.nome == "Inflamável" %}
+            <span title="Produto inflamavel - alto risco" style="margin-left:0.4rem">
+              🔥
+            </span>
+          {% endif %}
+        </td>
+        <td style="font-size:0.8rem">{{ produto.categoria.nome|default:"—" }}</td>
+        <td style="font-size:0.8rem">{{ produto.get_unidade_display }}</td>
+        <td style="font-size:0.82rem;color:#64748b">R$ {{ produto.preco_custo|floatformat:2 }}</td>
+        <td style="font-weight:600;color:#1e40af">R$ {{ produto.preco_venda|floatformat:2 }}</td>
+        <td>
+          {% if produto.margem %}
+            <span style="font-size:0.78rem;color:{% if produto.margem >= 30 %}#15803d{% elif produto.margem >= 15 %}#d97706{% else %}#dc2626{% endif %};font-weight:600">
+              {{ produto.margem }}%
+            </span>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if produto.ativo %}
+            <span class="badge badge-status-ok" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Ativo</span>
+          {% else %}
+            <span class="badge badge-status-cancel" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Inativo</span>
+          {% endif %}
+        </td>
+        <td>
+          <button class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem"
+            onclick="abrirModalEditar({{ produto.pk }}, '{{ produto.codigo }}', '{{ produto.nome|escapejs }}', '{{ produto.categoria_id|default:'' }}', '{{ produto.unidade }}', '{{ produto.preco_custo }}', '{{ produto.preco_venda }}', {{ produto.ativo|yesno:'true,false' }})">
+            <i class="bi bi-pencil"></i>
+          </button>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="9" class="text-center text-muted py-4">
+          <i class="bi bi-box-seam d-block mb-2" style="font-size:1.5rem"></i>
+          Nenhum produto encontrado.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

@@ -1,0 +1,218 @@
+{% extends 'base/base.html' %}
+{% block title %}{{ cliente.nome }}{% endblock %}
+{% block page_title %}{{ cliente.nome }}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'cliente_editar' cliente.pk %}" class="btn btn-sm btn-outline-secondary me-2">
+    <i class="bi bi-pencil me-1"></i>Editar
+  </a>
+  <a href="{% url 'cliente_lista' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Voltar
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+
+  <!-- Info do cliente -->
+  <div class="col-lg-4">
+    <div class="pdv-card p-3 mb-3">
+      <div class="fw-600 mb-3" style="font-size:0.875rem">Informações</div>
+      <div class="mb-2" style="font-size:0.85rem">
+        <span class="text-muted">Telefone:</span>
+        <span class="ms-2">{{ cliente.telefone|default:"—" }}</span>
+      </div>
+      <div class="mb-2" style="font-size:0.85rem">
+        <span class="text-muted">CPF/CNPJ:</span>
+        <span class="ms-2">{{ cliente.cpf_cnpj|default:"—" }}</span>
+      </div>
+      <div class="mb-2" style="font-size:0.85rem">
+        <span class="text-muted">Endereço:</span>
+        <span class="ms-2">{{ cliente.endereco|default:"—" }}</span>
+      </div>
+      <div style="font-size:0.85rem">
+        <span class="text-muted">Cadastrado em:</span>
+        <span class="ms-2">{{ cliente.criado_em|date:"d/m/Y" }}</span>
+      </div>
+    </div>
+
+    <!-- Saldo devedor -->
+    {% if total_devido > 0 %}
+    <div class="p-3 mb-3" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px">
+      <div style="font-size:0.78rem;color:#92400e;font-weight:600;margin-bottom:0.25rem">
+        <i class="bi bi-exclamation-triangle me-1"></i>Saldo devedor
+      </div>
+      <div style="font-size:1.8rem;font-weight:700;color:#dc2626">
+        R$ {{ total_devido|floatformat:2 }}
+      </div>
+      <div style="font-size:0.75rem;color:#64748b;margin-top:0.25rem">
+        {{ contas_pendentes|length }} conta(s) pendente(s)
+      </div>
+    </div>
+    {% else %}
+    <div class="pdv-card p-3 mb-3" style="background:#f0fdf4;border-color:#bbf7d0">
+      <div style="font-size:0.85rem;color:#15803d;font-weight:600">
+        <i class="bi bi-check-circle me-1"></i>Cliente em dia!
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-8">
+    <!-- Contas a receber -->
+    <div class="table-card mb-3">
+      <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+        <span style="font-weight:600;font-size:0.875rem">
+          <i class="bi bi-cash-coin me-1"></i>Contas a receber
+        </span>
+        {% if total_devido > 0 %}
+        <button class="btn btn-sm btn-success" onclick="abrirModalPagarTudo()" style="font-size:0.75rem">
+          <i class="bi bi-check-all me-1"></i>Quitar tudo
+        </button>
+        {% endif %}
+      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Descrição</th>
+            <th>Valor</th>
+            <th>Vencimento</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for conta in contas %}
+          <tr>
+            <td style="font-size:0.85rem">{{ conta.descricao }}</td>
+            <td style="font-weight:600;color:#1e40af">R$ {{ conta.valor|floatformat:2 }}</td>
+            <td style="font-size:0.85rem">{{ conta.vencimento|date:"d/m/Y" }}</td>
+            <td>
+              {% if conta.pago %}
+                <span class="badge badge-status-ok" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Pago</span>
+              {% elif conta.vencida %}
+                <span class="badge badge-fiado" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Vencida</span>
+              {% else %}
+                <span class="badge badge-dinheiro" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Pendente</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if not conta.pago %}
+              <button class="btn btn-sm btn-success" style="font-size:0.72rem;padding:0.25rem 0.6rem"
+                onclick="confirmarPagamento({{ conta.pk }}, 'R$ {{ conta.valor|floatformat:2 }}', '{{ conta.descricao|escapejs }}')">
+                <i class="bi bi-check-lg me-1"></i>Recebido
+              </button>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted py-3" style="font-size:0.85rem">
+              Nenhuma conta a receber.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Histórico de vendas -->
+    <div class="table-card">
+      <div class="p-3 border-bottom" style="font-weight:600;font-size:0.875rem">
+        <i class="bi bi-receipt me-1"></i>Histórico de compras
+      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Pagamento</th>
+            <th>Total</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for venda in vendas %}
+          <tr>
+            <td><a href="{% url 'venda_detalhe' venda.pk %}" style="color:#1e40af">#{{ venda.pk }}</a></td>
+            <td style="font-size:0.82rem">{{ venda.get_forma_pagamento_display }}</td>
+            <td style="font-weight:600">R$ {{ venda.total|floatformat:2 }}</td>
+            <td style="font-size:0.78rem;color:#64748b">{{ venda.criada_em|date:"d/m/Y H:i" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="text-center text-muted py-3" style="font-size:0.85rem">Nenhuma compra ainda.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal confirmar pagamento individual -->
+<div class="modal fade" id="modalPagamento" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-body text-center p-4">
+        <div style="width:56px;height:56px;background:#d1fae5;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;color:#065f46">
+          <i class="bi bi-cash-coin"></i>
+        </div>
+        <h5 class="fw-bold mb-1">Confirmar pagamento?</h5>
+        <p class="text-muted mb-1" style="font-size:0.85rem" id="modal-pag-desc"></p>
+        <p style="font-size:1.3rem;font-weight:700;color:#15803d" id="modal-pag-valor"></p>
+        <p class="text-muted mb-3" style="font-size:0.78rem">Ao confirmar, o valor será removido do saldo devedor.</p>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancelar</button>
+          <form id="form-pagamento" method="post" style="flex:1">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success w-100 fw-bold">
+              <i class="bi bi-check-lg me-1"></i>Confirmar recebimento
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal quitar tudo -->
+<div class="modal fade" id="modalQuitarTudo" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-body text-center p-4">
+        <div style="width:56px;height:56px;background:#d1fae5;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;color:#065f46">
+          <i class="bi bi-check-all"></i>
+        </div>
+        <h5 class="fw-bold mb-1">Quitar toda a dívida?</h5>
+        <p class="text-muted mb-1" style="font-size:0.85rem">{{ cliente.nome }}</p>
+        <p style="font-size:1.4rem;font-weight:700;color:#15803d">R$ {{ total_devido|floatformat:2 }}</p>
+        <p class="text-muted mb-3" style="font-size:0.78rem">Todas as contas pendentes serão marcadas como pagas.</p>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancelar</button>
+          <form method="post" action="{% url 'cliente_quitar_tudo' cliente.pk %}" style="flex:1">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success w-100 fw-bold">
+              <i class="bi bi-check-all me-1"></i>Quitar tudo
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmarPagamento(contaId, valor, descricao) {
+  document.getElementById('modal-pag-desc').textContent = descricao;
+  document.getElementById('modal-pag-valor').textContent = valor;
+  document.getElementById('form-pagamento').action = '/financeiro/baixa/' + contaId + '/';
+  new bootstrap.Modal(document.getElementById('modalPagamento')).show();
+}
+
+function abrirModalPagarTudo() {
+  new bootstrap.Modal(document.getElementById('modalQuitarTudo')).show();
+}
+</script>
+{% endblock %}

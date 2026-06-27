@@ -1,0 +1,75 @@
+{% extends 'base/base.html' %}
+{% block title %}{% if cliente %}Editar cliente{% else %}Novo cliente{% endif %}{% endblock %}
+{% block page_title %}{% if cliente %}Editar cliente{% else %}Novo cliente a prazo{% endif %}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'cliente_lista' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Voltar
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="pdv-card p-4">
+      <div class="mb-3 p-2" style="background:#eff6ff;border-radius:8px;font-size:0.8rem;color:#1e40af">
+        <i class="bi bi-info-circle me-1"></i>
+        Cadastre aqui apenas clientes que compram <strong>a prazo ou fiado</strong>. Quem paga na hora não precisa ser cadastrado.
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <div class="row g-3">
+
+          <div class="col-12">
+            <label class="form-label" style="font-size:0.82rem;font-weight:600">
+              Nome completo <span class="text-danger">*</span>
+            </label>
+            <input type="text" name="nome" class="form-control"
+              value="{{ cliente.nome|default:'' }}"
+              placeholder="Ex: João da Silva" required autofocus>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:0.82rem;font-weight:600">Telefone / WhatsApp</label>
+            <input type="text" name="telefone" class="form-control"
+              value="{{ cliente.telefone|default:'' }}"
+              placeholder="(00) 90000-0000">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:0.82rem;font-weight:600">CPF / CNPJ</label>
+            <input type="text" name="cpf_cnpj" class="form-control"
+              value="{{ cliente.cpf_cnpj|default:'' }}"
+              placeholder="000.000.000-00">
+          </div>
+
+          <div class="col-12">
+            <label class="form-label" style="font-size:0.82rem;font-weight:600">Endereço</label>
+            <textarea name="endereco" class="form-control" rows="2"
+              placeholder="Rua, número, bairro...">{{ cliente.endereco|default:'' }}</textarea>
+          </div>
+
+          {% if cliente %}
+          <div class="col-12">
+            <div class="form-check">
+              <input type="checkbox" name="ativo" id="ativo" class="form-check-input"
+                {% if cliente.ativo %}checked{% endif %}>
+              <label for="ativo" class="form-check-label" style="font-size:0.85rem">Cliente ativo</label>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="col-12 d-flex gap-2 mt-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg me-1"></i>
+              {% if cliente %}Salvar alterações{% else %}Cadastrar cliente{% endif %}
+            </button>
+            <a href="{% url 'cliente_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

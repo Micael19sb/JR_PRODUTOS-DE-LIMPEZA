@@ -1,0 +1,199 @@
+{% extends 'base/base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'pdv' %}" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-lg me-1"></i>Nova venda
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Cards de resumo -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="stat-value">R$ {{ total_hoje|floatformat:2 }}</div>
+          <div class="stat-label">Vendas hoje</div>
+        </div>
+        <div class="stat-icon" style="background:#eff6ff;color:#1d4ed8">
+          <i class="bi bi-sun"></i>
+        </div>
+      </div>
+      <div class="mt-2" style="font-size:0.75rem;color:#64748b">{{ qtd_hoje }} venda{{ qtd_hoje|pluralize }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="stat-value">R$ {{ total_mes|floatformat:2 }}</div>
+          <div class="stat-label">Este mês</div>
+        </div>
+        <div class="stat-icon" style="background:#f0fdf4;color:#15803d">
+          <i class="bi bi-graph-up"></i>
+        </div>
+      </div>
+      <div class="mt-2" style="font-size:0.75rem;color:#64748b">{{ qtd_mes }} venda{{ qtd_mes|pluralize }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="stat-value" style="{% if contas_vencidas %}color:#dc2626{% endif %}">
+            R$ {{ total_receber|floatformat:2 }}
+          </div>
+          <div class="stat-label">A receber</div>
+        </div>
+        <div class="stat-icon" style="background:#fff7ed;color:#c2410c">
+          <i class="bi bi-cash-coin"></i>
+        </div>
+      </div>
+      {% if contas_vencidas %}
+        <div class="mt-2" style="font-size:0.75rem;color:#dc2626">
+          <i class="bi bi-exclamation-circle me-1"></i>{{ contas_vencidas }} vencida{{ contas_vencidas|pluralize }}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="stat-value" style="{% if alertas_estoque %}color:#d97706{% endif %}">
+            {{ alertas_estoque|length }}
+          </div>
+          <div class="stat-label">Alertas de estoque</div>
+        </div>
+        <div class="stat-icon" style="background:#fffbeb;color:#d97706">
+          <i class="bi bi-archive"></i>
+        </div>
+      </div>
+      <div class="mt-2" style="font-size:0.75rem;color:#64748b">
+        {% if alertas_estoque %}produtos abaixo do mínimo{% else %}tudo OK{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+
+  <!-- Últimas vendas -->
+  <div class="col-lg-8">
+    <div class="table-card">
+      <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
+        <span style="font-weight:600;font-size:0.875rem">Últimas vendas</span>
+        <a href="{% url 'venda_lista' %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem">Ver todas</a>
+      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Cliente</th>
+            <th>Loja</th>
+            <th>Pagamento</th>
+            <th>Total</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for venda in ultimas_vendas %}
+          <tr>
+            <td>
+              <a href="{% url 'venda_detalhe' venda.pk %}" style="font-size:0.8rem;color:#1e40af">#{{ venda.pk }}</a>
+            </td>
+            <td>{{ venda.cliente.nome|default:"Consumidor final" }}</td>
+            <td><span style="font-size:0.75rem;color:#64748b">{{ venda.loja.cidade }}</span></td>
+            <td>
+              <span class="badge
+                {% if venda.forma_pagamento == 'pix' %}badge-pix
+                {% elif venda.forma_pagamento == 'dinheiro' %}badge-dinheiro
+                {% elif 'cartao' in venda.forma_pagamento %}badge-cartao
+                {% elif venda.forma_pagamento == 'fiado' %}badge-fiado
+                {% endif %}" style="font-size:0.7rem;font-weight:500;padding:0.3rem 0.6rem;border-radius:6px">
+                {{ venda.get_forma_pagamento_display }}
+              </span>
+            </td>
+            <td style="font-weight:600;color:#1e293b">R$ {{ venda.total|floatformat:2 }}</td>
+            <td style="font-size:0.78rem;color:#64748b">{{ venda.criada_em|date:"d/m H:i" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma venda registrada ainda.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Painel lateral -->
+  <div class="col-lg-4">
+
+    <!-- Clientes devedores -->
+    <div class="table-card mb-3">
+      <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
+        <span style="font-weight:600;font-size:0.875rem">
+          <i class="bi bi-person-exclamation me-1 text-danger"></i>Clientes devedores
+        </span>
+        <a href="{% url 'cliente_lista' %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem">Ver todos</a>
+      </div>
+      <div class="p-2">
+        {% if clientes_devedores %}
+          {% for item in clientes_devedores %}
+          <a href="{% url 'cliente_detalhe' item.cliente.pk %}" style="text-decoration:none">
+            <div class="d-flex align-items-center justify-content-between p-2 rounded mb-1"
+              style="background:{% if item.vencida %}#fff1f1{% else %}#f8fafc{% endif %};border:1px solid {% if item.vencida %}#fecaca{% else %}#e2e8f0{% endif %};transition:background 0.15s">
+              <div>
+                <div style="font-size:0.82rem;font-weight:600;color:#1e293b">{{ item.cliente.nome }}</div>
+                {% if item.vencida %}
+                  <div style="font-size:0.7rem;color:#dc2626;font-weight:500">
+                    <i class="bi bi-clock me-1"></i>Vencida
+                  </div>
+                {% else %}
+                  <div style="font-size:0.7rem;color:#64748b">Em dia</div>
+                {% endif %}
+              </div>
+              <div style="font-weight:700;color:{% if item.vencida %}#dc2626{% else %}#d97706{% endif %};font-size:0.9rem">
+                R$ {{ item.saldo|floatformat:2 }}
+              </div>
+            </div>
+          </a>
+          {% endfor %}
+          <div class="mt-2 pt-2 border-top d-flex justify-content-between" style="font-size:0.78rem">
+            <span class="text-muted">Total a receber</span>
+            <span style="font-weight:700;color:#1e40af">R$ {{ total_receber|floatformat:2 }}</span>
+          </div>
+        {% else %}
+          <div class="text-center text-muted py-3" style="font-size:0.82rem">
+            <i class="bi bi-check-circle d-block mb-1" style="font-size:1.5rem;color:#15803d"></i>
+            Nenhum cliente devedor!
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Alertas de estoque -->
+    {% if alertas_estoque %}
+    <div class="alerta-estoque p-3">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <i class="bi bi-exclamation-triangle text-warning"></i>
+        <span style="font-weight:600;font-size:0.82rem">Estoque baixo</span>
+      </div>
+      {% for est in alertas_estoque %}
+      <div class="d-flex justify-content-between mb-1" style="font-size:0.78rem">
+        <span>{{ est.produto.nome }}</span>
+        <span style="color:#dc2626;font-weight:600">{{ est.quantidade }} {{ est.produto.unidade }}</span>
+      </div>
+      {% endfor %}
+      <a href="{% url 'estoque_lista' %}" class="btn btn-sm btn-warning w-100 mt-2" style="font-size:0.75rem">
+        Ver estoque completo
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

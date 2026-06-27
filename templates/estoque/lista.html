@@ -1,0 +1,356 @@
+{% extends 'base/base.html' %}
+{% block title %}Estoque{% endblock %}
+{% block page_title %}Estoque{% endblock %}
+
+{% block topbar_actions %}
+  <button class="btn btn-sm btn-success" onclick="abrirModalProduto()">
+    <i class="bi bi-plus-lg me-1"></i>Cadastrar produto
+  </button>
+{% endblock %}
+
+{% block content %}
+
+{% if alertas %}
+<div class="alerta-estoque p-3 mb-3">
+  <div class="d-flex align-items-center gap-2 mb-2">
+    <i class="bi bi-exclamation-triangle text-warning" style="font-size:1.1rem"></i>
+    <span style="font-weight:600;font-size:0.85rem">{{ alertas|length }} produto(s) com estoque baixo</span>
+  </div>
+  <div class="row g-2">
+    {% for e in alertas %}
+    <div class="col-md-4">
+      <div style="background:#fff;border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;border:1px solid #fed7aa">
+        <div style="font-weight:600">{{ e.produto.nome }}</div>
+        <div style="color:#dc2626">{{ e.quantidade }} {{ e.produto.unidade }} — minimo: {{ e.estoque_minimo }}</div>
+        <a href="{% url 'estoque_entrada' e.pk %}" class="btn btn-sm btn-warning mt-1" style="font-size:0.72rem;padding:0.2rem 0.6rem">
+          <i class="bi bi-plus me-1"></i>Dar entrada
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Filtros -->
+<div class="pdv-card p-3 mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label" style="font-size:0.78rem;font-weight:600">Buscar produto</label>
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Nome do produto...">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" style="font-size:0.78rem;font-weight:600">Filtrar</label>
+      <select name="filtro" class="form-select form-select-sm">
+        <option value="">Todos os produtos</option>
+        <option value="baixo" {% if filtro == 'baixo' %}selected{% endif %}>Estoque baixo</option>
+        <option value="zerado" {% if filtro == 'zerado' %}selected{% endif %}>Estoque zerado</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <button type="submit" class="btn btn-sm btn-primary w-100">
+        <i class="bi bi-search me-1"></i>Filtrar
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Tabela -->
+<div class="table-card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Produto</th>
+        <th>Categoria</th>
+        <th>Unidade</th>
+        <th>Qtd. atual</th>
+        <th>Mínimo</th>
+        <th>Situação</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in estoques %}
+      <tr>
+        <td style="font-weight:500">
+          {{ e.produto.nome }}
+          {% if e.produto.categoria.nome == "Inflamavel" %}🔥{% endif %}
+        </td>
+        <td style="font-size:0.8rem;color:#64748b">{{ e.produto.categoria.nome|default:"—" }}</td>
+        <td style="font-size:0.8rem">{{ e.produto.get_unidade_display }}</td>
+        <td>
+          <span style="font-weight:700;font-size:1rem;color:{% if e.quantidade <= 0 %}#dc2626{% elif e.abaixo_minimo %}#d97706{% else %}#15803d{% endif %}">
+            {{ e.quantidade }}
+          </span>
+        </td>
+        <td style="font-size:0.82rem;color:#64748b">{{ e.estoque_minimo }}</td>
+        <td>
+          {% if e.quantidade <= 0 %}
+            <span class="badge badge-fiado" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Zerado</span>
+          {% elif e.abaixo_minimo %}
+            <span class="badge badge-dinheiro" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Baixo</span>
+          {% else %}
+            <span class="badge badge-status-ok" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">OK</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{% url 'estoque_entrada' e.pk %}" class="btn btn-sm btn-primary" style="font-size:0.72rem;padding:0.25rem 0.6rem">
+              <i class="bi bi-plus-lg"></i> Entrada
+            </a>
+            <a href="{% url 'estoque_ajuste' e.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{% url 'estoque_historico' e.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem">
+              <i class="bi bi-clock-history"></i>
+            </a>
+            <button class="btn btn-sm btn-outline-danger" style="font-size:0.72rem;padding:0.25rem 0.6rem"
+              onclick="confirmarExclusao({{ e.produto.pk }}, '{{ e.produto.nome }}')">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" class="text-center text-muted py-4">
+          <i class="bi bi-archive d-block mb-2" style="font-size:1.5rem"></i>
+          Nenhum produto no estoque ainda.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal cadastro de produto -->
+<div class="modal fade" id="modalNovoProduto" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-body p-4">
+
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="mb-0" style="font-size:1rem;font-weight:700">
+            <i class="bi bi-box-seam me-2 text-success"></i>Cadastrar novo produto
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div id="msg-produto-sucesso" style="display:none" class="alert alert-success py-2 px-3 mb-3">
+          <i class="bi bi-check-circle me-2"></i><span id="msg-produto-texto"></span>
+        </div>
+        <div id="msg-produto-erro" style="display:none" class="alert alert-danger py-2 px-3 mb-3">
+          <i class="bi bi-exclamation-circle me-2"></i><span id="msg-produto-erro-texto"></span>
+        </div>
+
+        <div class="row g-3" id="form-produto-campos">
+
+          <!-- Preview nome -->
+          <div class="col-12">
+            <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:0.65rem 1rem;font-size:0.82rem;color:#0369a1">
+              <span style="font-weight:600">Nome gerado:</span>
+              <span id="preview-nome" style="margin-left:0.5rem;font-weight:700;font-size:0.95rem;color:#1e293b">—</span>
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <label style="font-size:0.82rem;font-weight:600">Código <span class="text-danger">*</span></label>
+            <input type="text" id="np-codigo" class="form-control mt-1" placeholder="Ex: 001">
+          </div>
+
+          <div class="col-md-8">
+            <label style="font-size:0.82rem;font-weight:600">Categoria <span class="text-danger">*</span></label>
+            <select id="np-categoria" class="form-select mt-1" onchange="gerarNome()">
+              <option value="" data-nome="">Selecione...</option>
+              {% for cat in categorias %}
+                <option value="{{ cat.pk }}" data-nome="{{ cat.nome }}">
+                  {{ cat.nome }}{% if cat.nome == "Inflamavel" %} 🔥{% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label style="font-size:0.82rem;font-weight:600">Fragrância <span style="color:#94a3b8;font-weight:400">(opcional)</span></label>
+            <input type="text" id="np-fragancia" class="form-control mt-1"
+              placeholder="Ex: Lavanda, Pinho, Citrus..." oninput="gerarNome()">
+          </div>
+
+          <div class="col-md-6">
+            <label style="font-size:0.82rem;font-weight:600">Tamanho <span class="text-danger">*</span></label>
+            <div class="d-flex gap-2 mt-1">
+              <input type="number" id="np-tamanho" class="form-control" placeholder="Ex: 500" min="0" step="0.01" oninput="gerarNome()">
+              <select id="np-unidade" class="form-select" style="max-width:90px" onchange="gerarNome()">
+                <option value="ml">ml</option>
+                <option value="L">L</option>
+                <option value="kg">kg</option>
+                <option value="g">g</option>
+                <option value="un">un</option>
+                <option value="cx">cx</option>
+                <option value="pct">pct</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <label style="font-size:0.82rem;font-weight:600">Nome final do produto <span class="text-danger">*</span></label>
+            <input type="text" id="np-nome" class="form-control mt-1" placeholder="Gerado automaticamente ou edite aqui">
+          </div>
+
+          <div class="col-md-4">
+            <label style="font-size:0.82rem;font-weight:600">Preço de custo (R$)</label>
+            <input type="number" id="np-custo" class="form-control mt-1" placeholder="0,00" min="0" step="0.01" value="0">
+          </div>
+          <div class="col-md-4">
+            <label style="font-size:0.82rem;font-weight:600">Preço de venda (R$) <span class="text-danger">*</span></label>
+            <input type="number" id="np-venda" class="form-control mt-1" placeholder="0,00" min="0" step="0.01">
+          </div>
+          <div class="col-md-4">
+            <label style="font-size:0.82rem;font-weight:600">Qtd. inicial no estoque</label>
+            <input type="number" id="np-estoque" class="form-control mt-1" placeholder="0" min="0" step="0.01" value="0">
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4" id="btns-produto">
+          <button class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-success flex-fill" onclick="salvarNovoProduto()">
+            <i class="bi bi-check-lg me-1"></i>Cadastrar produto
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal exclusão -->
+<div class="modal fade" id="modalExcluirProduto" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-body text-center p-4">
+        <div style="width:56px;height:56px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;color:#dc2626">
+          <i class="bi bi-trash"></i>
+        </div>
+        <h5 class="fw-bold mb-1">Excluir produto?</h5>
+        <p class="text-muted mb-3" style="font-size:0.82rem">
+          <strong id="modal-produto-nome"></strong><br>
+          Esta ação não pode ser desfeita.
+        </p>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancelar</button>
+          <form id="form-excluir-produto" method="post" style="flex:1">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger w-100">
+              <i class="bi bi-trash me-1"></i>Confirmar
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = '{{ csrf_token }}';
+
+function gerarNome() {
+  const catSelect = document.getElementById('np-categoria');
+  const catNome = catSelect.options[catSelect.selectedIndex]?.dataset.nome || '';
+  const fragancia = document.getElementById('np-fragancia').value.trim();
+  const tamanho = document.getElementById('np-tamanho').value.trim();
+  const unidade = document.getElementById('np-unidade').value;
+
+  let partes = [];
+  if (catNome) partes.push(catNome);
+  if (fragancia) partes.push(fragancia);
+  if (tamanho) partes.push(tamanho + unidade);
+
+  const nome = partes.join(' ');
+  document.getElementById('preview-nome').textContent = nome || '—';
+  document.getElementById('np-nome').value = nome;
+}
+
+function abrirModalProduto() {
+  document.getElementById('np-codigo').value = '';
+  document.getElementById('np-categoria').value = '';
+  document.getElementById('np-fragancia').value = '';
+  document.getElementById('np-tamanho').value = '';
+  document.getElementById('np-unidade').value = 'ml';
+  document.getElementById('np-nome').value = '';
+  document.getElementById('np-custo').value = '0';
+  document.getElementById('np-venda').value = '';
+  document.getElementById('np-estoque').value = '0';
+  document.getElementById('preview-nome').textContent = '—';
+  document.getElementById('msg-produto-sucesso').style.display = 'none';
+  document.getElementById('msg-produto-erro').style.display = 'none';
+  document.getElementById('form-produto-campos').style.display = '';
+  document.getElementById('btns-produto').style.display = '';
+  new bootstrap.Modal(document.getElementById('modalNovoProduto')).show();
+  setTimeout(() => document.getElementById('np-codigo').focus(), 400);
+}
+
+function salvarNovoProduto() {
+  const codigo = document.getElementById('np-codigo').value.trim();
+  const nome = document.getElementById('np-nome').value.trim();
+  const venda = document.getElementById('np-venda').value;
+
+  document.getElementById('msg-produto-erro').style.display = 'none';
+
+  if (!codigo || !nome || !venda) {
+    document.getElementById('msg-produto-erro-texto').textContent = 'Preencha codigo, nome e preco de venda.';
+    document.getElementById('msg-produto-erro').style.display = 'block';
+    return;
+  }
+
+  const btn = document.querySelector('#btns-produto .btn-success');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+
+  fetch('/produtos/novo-ajax/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+    body: JSON.stringify({
+      codigo,
+      nome,
+      categoria_id: document.getElementById('np-categoria').value || null,
+      unidade: document.getElementById('np-unidade').value,
+      preco_custo: document.getElementById('np-custo').value || '0',
+      preco_venda: venda,
+      estoque_inicial: document.getElementById('np-estoque').value || '0',
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.sucesso) {
+      document.getElementById('msg-produto-texto').textContent = 'Produto "' + data.nome + '" cadastrado com sucesso!';
+      document.getElementById('msg-produto-sucesso').style.display = 'block';
+      document.getElementById('form-produto-campos').style.display = 'none';
+      document.getElementById('btns-produto').style.display = 'none';
+      setTimeout(() => {
+        bootstrap.Modal.getInstance(document.getElementById('modalNovoProduto')).hide();
+        location.reload();
+      }, 1500);
+    } else {
+      document.getElementById('msg-produto-erro-texto').textContent = data.erro || 'Erro ao cadastrar produto.';
+      document.getElementById('msg-produto-erro').style.display = 'block';
+    }
+  })
+  .catch(() => {
+    document.getElementById('msg-produto-erro-texto').textContent = 'Erro de conexao. Tente novamente.';
+    document.getElementById('msg-produto-erro').style.display = 'block';
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Cadastrar produto';
+  });
+}
+
+function confirmarExclusao(produtoId, nome) {
+  document.getElementById('modal-produto-nome').textContent = nome;
+  document.getElementById('form-excluir-produto').action = '/produtos/' + produtoId + '/excluir/';
+  new bootstrap.Modal(document.getElementById('modalExcluirProduto')).show();
+}
+</script>
+{% endblock %}

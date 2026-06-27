@@ -1,0 +1,139 @@
+{% extends 'base/base.html' %}
+{% block title %}Clientes a prazo{% endblock %}
+{% block page_title %}Clientes a prazo{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'cliente_novo' %}" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-lg me-1"></i>Novo cliente
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<div class="pdv-card p-3 mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-md-8">
+      <label class="form-label" style="font-size:0.78rem;font-weight:600">Buscar cliente</label>
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Nome do cliente...">
+    </div>
+    <div class="col-md-4">
+      <button type="submit" class="btn btn-sm btn-primary w-100">
+        <i class="bi bi-search me-1"></i>Buscar
+      </button>
+    </div>
+  </form>
+</div>
+
+<div class="table-card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Telefone</th>
+        <th>CPF/CNPJ</th>
+        <th>Saldo devedor</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cliente in clientes %}
+      <tr>
+        <td>
+          <a href="{% url 'cliente_detalhe' cliente.pk %}" style="font-weight:600;color:#1e293b;text-decoration:none">
+            {{ cliente.nome }}
+          </a>
+        </td>
+        <td style="font-size:0.85rem">{{ cliente.telefone|default:"—" }}</td>
+        <td style="font-size:0.85rem">{{ cliente.cpf_cnpj|default:"—" }}</td>
+        <td>
+          {% if cliente.saldo_devedor > 0 %}
+            <span style="color:#dc2626;font-weight:700">R$ {{ cliente.saldo_devedor|floatformat:2 }}</span>
+          {% else %}
+            <span style="color:#15803d;font-size:0.82rem">Em dia</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if cliente.ativo %}
+            <span class="badge badge-status-ok" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Ativo</span>
+          {% else %}
+            <span class="badge badge-status-cancel" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Inativo</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{% url 'cliente_editar' cliente.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <button class="btn btn-sm btn-outline-danger" style="font-size:0.75rem"
+              onclick="confirmarExclusao({{ cliente.pk }}, '{{ cliente.nome }}', {{ cliente.saldo_devedor }})">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" class="text-center text-muted py-4">
+          <i class="bi bi-people d-block mb-2" style="font-size:1.5rem"></i>
+          Nenhum cliente cadastrado ainda.<br>
+          <small class="text-muted">Cadastre apenas clientes que compram a prazo/fiado.</small>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal de confirmação de exclusão -->
+<div class="modal fade" id="modalExcluir" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-body text-center p-4">
+        <div style="width:56px;height:56px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;color:#dc2626">
+          <i class="bi bi-trash"></i>
+        </div>
+        <h5 class="fw-bold mb-1">Excluir cliente?</h5>
+        <p class="text-muted mb-1" style="font-size:0.85rem">
+          <strong id="modal-cliente-nome"></strong>
+        </p>
+        <div id="aviso-divida" style="display:none" class="alert alert-warning py-2 px-3 mb-2" style="font-size:0.82rem">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          Este cliente possui saldo devedor de <strong id="modal-cliente-divida"></strong>. Tem certeza que deseja excluir?
+        </div>
+        <p class="text-muted mb-3" style="font-size:0.82rem">
+          O histórico de compras será mantido, mas o cliente será removido da lista. Esta ação não pode ser desfeita.
+        </p>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancelar</button>
+          <form id="form-excluir" method="post" style="flex:1">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger w-100">
+              <i class="bi bi-trash me-1"></i>Confirmar exclusão
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmarExclusao(clienteId, nome, saldo) {
+  document.getElementById('modal-cliente-nome').textContent = nome;
+  document.getElementById('form-excluir').action = '/clientes/' + clienteId + '/excluir/';
+
+  const avisoDiv = document.getElementById('aviso-divida');
+  if (saldo > 0) {
+    document.getElementById('modal-cliente-divida').textContent = 'R$ ' + saldo.toFixed(2).replace('.', ',');
+    avisoDiv.style.display = 'block';
+  } else {
+    avisoDiv.style.display = 'none';
+  }
+
+  new bootstrap.Modal(document.getElementById('modalExcluir')).show();
+}
+</script>
+{% endblock %}
