@@ -15,7 +15,89 @@
     }
     body { background: #f8fafc; font-family: 'Segoe UI', system-ui, sans-serif; }
 
-    /* Mobile */
+    /* Mobile Responsivo */
+    @media (max-width: 768px) {
+      #sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+        width: 280px !important;
+      }
+      #sidebar.open { transform: translateX(0); }
+      #main { margin-left: 0 !important; }
+      .mobile-toggle {
+        display: flex !important;
+        position: fixed;
+        top: 0.6rem;
+        left: 0.75rem;
+        z-index: 1100;
+        background: #0f172a;
+        border: none;
+        border-radius: 8px;
+        padding: 0.45rem 0.65rem;
+        color: #fff;
+        font-size: 1.2rem;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      }
+      .topbar { padding-left: 3.5rem !important; }
+      .overlay-mobile {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+      }
+      .overlay-mobile.show { display: block; }
+
+      /* Conteúdo */
+      .page-content { padding: 1rem 0.75rem !important; }
+
+      /* Cards de resumo */
+      .stat-card { padding: 1rem !important; }
+      .stat-card .stat-value { font-size: 1.2rem !important; }
+
+      /* Tabelas responsivas */
+      .table-card { overflow-x: auto; }
+      .table td, .table th { white-space: nowrap; font-size: 0.78rem !important; padding: 0.5rem 0.6rem !important; }
+
+      /* PDV */
+      .pdv-layout { grid-template-columns: 1fr !important; }
+      .pdv-total .total-value { font-size: 1.5rem !important; }
+
+      /* Modais */
+      .modal-dialog { margin: 0.5rem !important; }
+      .modal-content { border-radius: 12px !important; }
+
+      /* Botões */
+      .btn-finalizar { padding: 0.75rem !important; font-size: 0.9rem !important; }
+
+      /* Forms */
+      .form-control, .form-select { font-size: 16px !important; }
+
+      /* Row cols */
+      .row { margin: 0 !important; }
+      .col-lg-4, .col-lg-8, .col-lg-6, .col-md-4, .col-md-6, .col-md-8 { padding: 0.25rem !important; }
+
+      /* Dashboard cards */
+      .col-6 { flex: 0 0 50% !important; max-width: 50% !important; }
+
+      /* Topbar */
+      .topbar-title { font-size: 0.85rem !important; }
+      .topbar { flex-wrap: wrap; gap: 0.5rem; }
+
+      /* Financeiro */
+      .fin-card { padding: 0.85rem !important; }
+      .fin-valor-positivo, .fin-valor-negativo, .fin-valor-neutro { font-size: 1.1rem !important; }
+
+      /* Estoque ações */
+      .d-flex.gap-1 { flex-wrap: wrap; gap: 0.25rem !important; }
+    }
+    @media (min-width: 769px) {
+      .mobile-toggle { display: none !important; }
+    }
+
+    /* 
     @media (max-width: 768px) {
       #sidebar {
         transform: translateX(-100%);
@@ -291,16 +373,23 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 function toggleMenu() {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('overlay').classList.toggle('show');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('show');
 }
+
+function fecharMenu() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
 // Fechar menu ao clicar em link no mobile
-document.querySelectorAll('.sidebar-link').forEach(link => {
-  link.addEventListener('click', () => {
-    if (window.innerWidth <= 768) {
-      document.getElementById('sidebar').classList.remove('open');
-      document.getElementById('overlay').classList.remove('show');
-    }
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.sidebar-link').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 768) fecharMenu();
+    });
   });
 });
 </script>
