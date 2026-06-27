@@ -1,0 +1,209 @@
+{% extends 'base/base.html' %}
+{% block title %}Fluxo de Caixa{% endblock %}
+{% block page_title %}Fluxo de Caixa{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'financeiro_lista' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Financeiro
+  </a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .fc-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:1.25rem; }
+  .fc-valor-positivo { color:#15803d; font-weight:700; font-size:1.4rem; }
+  .fc-valor-negativo { color:#dc2626; font-weight:700; font-size:1.4rem; }
+  .fc-valor-neutro { color:#1e40af; font-weight:700; font-size:1.4rem; }
+  .mov-item {
+    display:flex; align-items:center; gap:0.75rem;
+    padding:0.65rem 0; border-bottom:1px solid #f1f5f9;
+  }
+  .mov-item:last-child { border-bottom:none; }
+  .mov-icon {
+    width:36px; height:36px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.85rem; flex-shrink:0;
+  }
+  .mov-icon.entrada { background:#d1fae5; color:#065f46; }
+  .mov-icon.saida { background:#fee2e2; color:#7f1d1d; }
+  .mov-info { flex:1; }
+  .mov-desc { font-size:0.85rem; font-weight:500; color:#1e293b; }
+  .mov-sub { font-size:0.72rem; color:#64748b; }
+  .mov-valor { font-weight:700; white-space:nowrap; }
+  .mov-valor.entrada { color:#15803d; }
+  .mov-valor.saida { color:#dc2626; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Seletor de data -->
+<div class="fc-card mb-3">
+  <form method="get" class="d-flex align-items-end gap-3">
+    <div>
+      <label style="font-size:0.78rem;font-weight:600">Data</label>
+      <input type="date" name="data" value="{{ data_sel|date:'Y-m-d' }}"
+        class="form-control form-control-sm mt-1" style="max-width:180px">
+    </div>
+    <button type="submit" class="btn btn-sm btn-primary">
+      <i class="bi bi-search me-1"></i>Ver caixa
+    </button>
+    <a href="?data={{ hoje|date:'Y-m-d' }}" class="btn btn-sm btn-outline-secondary">Hoje</a>
+  </form>
+</div>
+
+<!-- Cards de resumo -->
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="fc-card text-center">
+      <div style="font-size:0.72rem;color:#64748b;font-weight:600;text-transform:uppercase">Saldo abertura</div>
+      <div class="fc-valor-neutro mt-1" style="font-size:1.1rem">R$ {{ saldo_abertura|floatformat:2 }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="fc-card text-center">
+      <div style="font-size:0.72rem;color:#64748b;font-weight:600;text-transform:uppercase">
+        <i class="bi bi-arrow-down-circle text-success me-1"></i>Entradas
+      </div>
+      <div class="fc-valor-positivo mt-1" style="font-size:1.1rem">R$ {{ total_entradas|floatformat:2 }}</div>
+      <div style="font-size:0.72rem;color:#64748b">{{ qtd_vendas }} venda{{ qtd_vendas|pluralize }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="fc-card text-center">
+      <div style="font-size:0.72rem;color:#64748b;font-weight:600;text-transform:uppercase">
+        <i class="bi bi-arrow-up-circle text-danger me-1"></i>Saidas
+      </div>
+      <div class="fc-valor-negativo mt-1" style="font-size:1.1rem">R$ {{ total_saidas|floatformat:2 }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="fc-card text-center">
+      <div style="font-size:0.72rem;color:#64748b;font-weight:600;text-transform:uppercase">Saldo acumulado</div>
+      <div class="mt-1 {% if saldo_acumulado >= 0 %}fc-valor-positivo{% else %}fc-valor-negativo{% endif %}" style="font-size:1.1rem">
+        R$ {{ saldo_acumulado|floatformat:2 }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+
+  <!-- Movimentações -->
+  <div class="col-lg-8">
+    <div class="fc-card">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <span style="font-weight:600;font-size:0.875rem">
+          <i class="bi bi-list-ul me-1"></i>Movimentacoes de {{ data_sel|date:"d/m/Y" }}
+        </span>
+        <span style="font-size:0.75rem;color:#64748b">{{ movimentacoes|length }} lancamento{{ movimentacoes|length|pluralize }}</span>
+      </div>
+
+      {% if movimentacoes %}
+        {% for mov in movimentacoes %}
+        <div class="mov-item">
+          <div class="mov-icon {{ mov.tipo }}">
+            {% if mov.tipo == 'entrada' %}
+              <i class="bi bi-arrow-down"></i>
+            {% else %}
+              <i class="bi bi-arrow-up"></i>
+            {% endif %}
+          </div>
+          <div class="mov-info">
+            <div class="mov-desc">{{ mov.descricao }}</div>
+            <div class="mov-sub">{{ mov.cliente }} · {{ mov.hora }}</div>
+          </div>
+          <div class="mov-valor {{ mov.tipo }}">
+            {% if mov.tipo == 'entrada' %}+{% else %}-{% endif %}
+            R$ {{ mov.valor|floatformat:2 }}
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-center text-muted py-4" style="font-size:0.85rem">
+          <i class="bi bi-inbox d-block mb-2" style="font-size:1.5rem"></i>
+          Nenhuma movimentacao neste dia.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Resumo e fechamento -->
+  <div class="col-lg-4">
+
+    <!-- Por forma de pagamento -->
+    {% if por_forma %}
+    <div class="fc-card mb-3">
+      <div style="font-weight:600;font-size:0.875rem;margin-bottom:0.75rem">
+        <i class="bi bi-pie-chart me-1"></i>Entradas por pagamento
+      </div>
+      {% for forma, valor in por_forma.items %}
+      <div class="d-flex justify-content-between mb-1" style="font-size:0.82rem">
+        <span style="color:#64748b">{{ forma }}</span>
+        <span style="font-weight:600;color:#15803d">R$ {{ valor|floatformat:2 }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Fechamento de caixa -->
+    <div class="fc-card">
+      <div style="font-weight:600;font-size:0.875rem;margin-bottom:0.75rem">
+        <i class="bi bi-lock me-1"></i>Fechamento do caixa
+      </div>
+
+      {% if fechamento_hoje and fechamento_hoje.fechado %}
+        <div class="text-center py-2">
+          <div style="color:#15803d;font-weight:600;font-size:0.85rem">
+            <i class="bi bi-check-circle me-1"></i>Caixa fechado!
+          </div>
+          <div style="font-size:1.3rem;font-weight:700;color:#1e40af;margin-top:0.5rem">
+            R$ {{ fechamento_hoje.saldo_fechamento|floatformat:2 }}
+          </div>
+          <div style="font-size:0.72rem;color:#64748b">Saldo de fechamento</div>
+          {% if fechamento_hoje.observacao %}
+          <div style="font-size:0.78rem;color:#64748b;margin-top:0.5rem">{{ fechamento_hoje.observacao }}</div>
+          {% endif %}
+        </div>
+      {% else %}
+        <form method="post" action="{% url 'fechar_caixa' %}">
+          {% csrf_token %}
+          <input type="hidden" name="data" value="{{ data_sel|date:'Y-m-d' }}">
+          <input type="hidden" name="saldo_abertura" value="{{ saldo_abertura }}">
+          <input type="hidden" name="total_entradas" value="{{ total_entradas }}">
+          <input type="hidden" name="total_despesas" value="{{ total_saidas }}">
+
+          <div class="mb-2" style="font-size:0.82rem">
+            <div class="d-flex justify-content-between">
+              <span style="color:#64748b">Saldo abertura</span>
+              <span>R$ {{ saldo_abertura|floatformat:2 }}</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span style="color:#15803d">+ Entradas</span>
+              <span style="color:#15803d">R$ {{ total_entradas|floatformat:2 }}</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span style="color:#dc2626">- Saidas</span>
+              <span style="color:#dc2626">R$ {{ total_saidas|floatformat:2 }}</span>
+            </div>
+            <div class="d-flex justify-content-between border-top mt-1 pt-1">
+              <span style="font-weight:700">Saldo final</span>
+              <span style="font-weight:700;color:#1e40af">R$ {{ saldo_acumulado|floatformat:2 }}</span>
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <label style="font-size:0.78rem;font-weight:600">Observacao</label>
+            <input type="text" name="observacao" class="form-control form-control-sm mt-1"
+              placeholder="Ex: Dinheiro em caixa, diferenca...">
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 btn-sm">
+            <i class="bi bi-lock me-1"></i>Fechar caixa do dia
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

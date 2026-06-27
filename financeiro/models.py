@@ -34,11 +34,11 @@ class ContaReceber(models.Model):
 class Despesa(models.Model):
     CATEGORIA_CHOICES = [
         ('aluguel', 'Aluguel'),
-        ('energia', 'Energia'),
-        ('agua', 'Água'),
+        ('energia', 'Energia eletrica'),
+        ('agua', 'Agua'),
         ('telefone', 'Telefone / Internet'),
         ('fornecedor', 'Fornecedor / Mercadoria'),
-        ('funcionario', 'Funcionário / Salário'),
+        ('funcionario', 'Funcionario / Salario'),
         ('transporte', 'Transporte / Frete'),
         ('outros', 'Outros'),
     ]
@@ -58,3 +58,23 @@ class Despesa(models.Model):
 
     def __str__(self):
         return f'{self.descricao} | R$ {self.valor} | {self.data}'
+
+
+class FechamentoCaixa(models.Model):
+    data = models.DateField(unique=True)
+    saldo_abertura = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_entradas = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_despesas = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    saldo_fechamento = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    observacao = models.TextField(blank=True)
+    fechado = models.BooleanField(default=False)
+    criado_por = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Fechamento de caixa'
+        verbose_name_plural = 'Fechamentos de caixa'
+        ordering = ['-data']
+
+    def __str__(self):
+        return f'Caixa {self.data} | Saldo: R$ {self.saldo_fechamento}'

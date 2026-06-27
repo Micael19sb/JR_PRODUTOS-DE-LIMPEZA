@@ -189,8 +189,11 @@
     <a href="{% url 'estoque_lista' %}" class="sidebar-link {% if 'estoque' in request.resolver_match.url_name %}active{% endif %}">
       <i class="bi bi-archive"></i> Estoque
     </a>
-    <a href="{% url 'financeiro_lista' %}" class="sidebar-link {% if 'financeiro' in request.resolver_match.url_name %}active{% endif %}">
+    <a href="{% url 'financeiro_lista' %}" class="sidebar-link {% if request.resolver_match.url_name == 'financeiro_lista' %}active{% endif %}">
       <i class="bi bi-cash-coin"></i> Financeiro
+    </a>
+    <a href="{% url 'fluxo_caixa' %}" class="sidebar-link {% if request.resolver_match.url_name == 'fluxo_caixa' %}active{% endif %}">
+      <i class="bi bi-arrow-left-right"></i> Fluxo de Caixa
     </a>
   </div>
 
