@@ -3,86 +3,140 @@
 {% block page_title %}Financeiro{% endblock %}
 
 {% block topbar_actions %}
-  <button class="btn btn-sm btn-success me-2" onclick="abrirModalRelatorio()">
-    <i class="bi bi-envelope me-1"></i>Relatório
-  </button>
   <button class="btn btn-sm btn-danger" onclick="abrirModalDespesa()">
     <i class="bi bi-dash-circle me-1"></i>Nova despesa
   </button>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+  .fin-card {
+    background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:1.25rem;
+  }
+  .fin-valor-positivo { color:#15803d; font-weight:700; font-size:1.4rem; }
+  .fin-valor-negativo { color:#dc2626; font-weight:700; font-size:1.4rem; }
+  .fin-valor-neutro   { color:#1e40af; font-weight:700; font-size:1.4rem; }
+  .periodo-btn {
+    border:1px solid #e2e8f0; border-radius:8px; padding:0.35rem 0.85rem;
+    background:#fff; cursor:pointer; font-size:0.8rem; font-weight:500;
+    color:#64748b; text-decoration:none; transition:all 0.15s;
+  }
+  .periodo-btn:hover, .periodo-btn.active {
+    background:#1e40af; color:#fff; border-color:#1e40af;
+  }
+  .conta-item {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0.65rem 0; border-bottom:1px solid #f1f5f9; gap:0.5rem;
+  }
+  .conta-item:last-child { border-bottom:none; }
+</style>
+{% endblock %}
+
 {% block content %}
 
+<!-- Filtro de período -->
+<div class="d-flex align-items-center gap-2 mb-3">
+  <span style="font-size:0.8rem;color:#64748b;font-weight:500">Período:</span>
+  <a href="?periodo=hoje" class="periodo-btn {% if periodo == 'hoje' %}active{% endif %}">Hoje</a>
+  <a href="?periodo=semana" class="periodo-btn {% if periodo == 'semana' %}active{% endif %}">Esta semana</a>
+  <a href="?periodo=mes" class="periodo-btn {% if periodo == 'mes' %}active{% endif %}">Este mês</a>
+</div>
+
 <!-- Cards de resumo -->
-<div class="row g-3 mb-3">
-  <div class="col-6 col-md-3">
-    <div class="stat-card">
-      <div class="stat-label">Saldo em caixa</div>
-      <div class="stat-value {% if saldo_atual >= 0 %}text-success{% else %}text-danger{% endif %}">
-        R$ {{ saldo_atual|floatformat:2 }}
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="fin-card">
+      <div style="font-size:0.75rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">
+        <i class="bi bi-arrow-down-circle text-success me-1"></i>Entradas
       </div>
-      <div style="font-size:0.72rem;color:#64748b">Dinheiro disponível agora</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="stat-card">
-      <div class="stat-label">A receber</div>
-      <div class="stat-value text-warning">R$ {{ total_a_receber|floatformat:2 }}</div>
-      <div style="font-size:0.72rem;color:#64748b">{{ contas_pendentes|length }} conta(s) pendente(s)</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="stat-card">
-      <div class="stat-label">Entradas do mês</div>
-      <div class="stat-value text-success">R$ {{ entradas_mes|floatformat:2 }}</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="stat-card">
-      <div class="stat-label">Saldo do mês</div>
-      <div class="stat-value {% if saldo_mes >= 0 %}text-success{% else %}text-danger{% endif %}">
-        R$ {{ saldo_mes|floatformat:2 }}
+      <div class="fin-valor-positivo mt-1">R$ {{ total_entradas|floatformat:2 }}</div>
+      <div style="font-size:0.75rem;color:#64748b;margin-top:0.25rem">
+        {{ inicio|date:"d/m" }} até {{ fim|date:"d/m/Y" }}
       </div>
+      <!-- Por forma de pagamento -->
+      <div class="mt-2 pt-2 border-top">
+        {% for forma, valor in por_pagamento.items %}
+        <div class="d-flex justify-content-between" style="font-size:0.78rem;margin-bottom:0.2rem">
+          <span style="color:#64748b">{{ forma }}</span>
+          <span style="font-weight:600">R$ {{ valor|floatformat:2 }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="fin-card">
+      <div style="font-size:0.75rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">
+        <i class="bi bi-arrow-up-circle text-danger me-1"></i>Despesas
+      </div>
+      <div class="fin-valor-negativo mt-1">R$ {{ total_despesas|floatformat:2 }}</div>
+      <div style="font-size:0.75rem;color:#64748b;margin-top:0.25rem">
+        {{ inicio|date:"d/m" }} até {{ fim|date:"d/m/Y" }}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="fin-card">
+      <div style="font-size:0.75rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">
+        <i class="bi bi-graph-up me-1"></i>Lucro real
+      </div>
+      <div class="mt-1 {% if lucro >= 0 %}fin-valor-positivo{% else %}fin-valor-negativo{% endif %}">
+        R$ {{ lucro|floatformat:2 }}
+      </div>
+      <div style="font-size:0.75rem;color:#64748b;margin-top:0.25rem">Entradas − Despesas</div>
     </div>
   </div>
 </div>
 
-<div class="row g-3 mb-3">
+<div class="row g-3">
 
   <!-- Contas a receber -->
   <div class="col-lg-6">
-    <div class="table-card">
-      <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
-        <span style="font-weight:600;font-size:0.875rem"><i class="bi bi-cash-coin me-1"></i>Contas a receber</span>
-        {% if contas_vencidas > 0 %}
-          <span class="badge bg-danger">{{ contas_vencidas }} vencida(s)</span>
-        {% endif %}
+    <div class="fin-card">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div style="font-weight:600;font-size:0.875rem">
+          <i class="bi bi-cash-coin me-1 text-warning"></i>Contas a receber
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          {% if contas_vencidas > 0 %}
+          <span style="font-size:0.72rem;background:#fee2e2;color:#dc2626;padding:0.2rem 0.5rem;border-radius:6px;font-weight:600">
+            {{ contas_vencidas }} vencida(s)
+          </span>
+          {% endif %}
+          <span style="font-size:0.78rem;font-weight:700;color:#1e40af">
+            R$ {{ total_pendente|floatformat:2 }}
+          </span>
+        </div>
       </div>
+
       {% if contas_pendentes %}
-      <table class="table">
-        <thead><tr><th>Cliente</th><th>Total</th><th>Pago</th><th>Pendente</th><th>Venc.</th><th></th></tr></thead>
-        <tbody>
-          {% for conta in contas_pendentes %}
-          <tr>
-            <td style="font-size:0.82rem;font-weight:500">{{ conta.cliente.nome }}</td>
-            <td style="font-size:0.8rem">R$ {{ conta.valor_total|floatformat:2 }}</td>
-            <td style="font-size:0.8rem;color:#15803d">R$ {{ conta.valor_pago|floatformat:2 }}</td>
-            <td style="font-weight:700;color:#dc2626">R$ {{ conta.valor_pendente|floatformat:2 }}</td>
-            <td style="font-size:0.75rem;color:{% if conta.vencida %}#dc2626{% else %}#64748b{% endif %}">
-              {{ conta.vencimento|date:"d/m/Y" }}
-            </td>
-            <td>
-              <button class="btn btn-sm btn-success" style="font-size:0.72rem"
-                onclick="abrirModalReceber({{ conta.pk }}, '{{ conta.cliente.nome|escapejs }}', '{{ conta.valor_pendente }}')">
-                Receber
-              </button>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+        {% for conta in contas_pendentes %}
+        <div class="conta-item">
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:0.85rem">{{ conta.cliente.nome }}</div>
+            <div style="font-size:0.72rem;color:#64748b">
+              {{ conta.descricao }} · Vence {{ conta.vencimento|date:"d/m/Y" }}
+            </div>
+            {% if conta.vencida %}
+            <span style="font-size:0.68rem;background:#fee2e2;color:#dc2626;padding:0.1rem 0.4rem;border-radius:4px;font-weight:600">
+              VENCIDA
+            </span>
+            {% endif %}
+          </div>
+          <div style="font-weight:700;color:#1e40af;font-size:0.9rem;white-space:nowrap">
+            R$ {{ conta.valor|floatformat:2 }}
+          </div>
+          <form method="post" action="{% url 'financeiro_baixa' conta.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-success" style="font-size:0.72rem;padding:0.25rem 0.6rem;white-space:nowrap"
+              onclick="return confirm('Confirmar pagamento de R$ {{ conta.valor }} de {{ conta.cliente.nome }}?')">
+              <i class="bi bi-check-lg me-1"></i>Recebido
+            </button>
+          </form>
+        </div>
+        {% endfor %}
       {% else %}
-        <div class="text-center py-4 text-muted" style="font-size:0.85rem">
+        <div class="text-center text-muted py-3" style="font-size:0.82rem">
           <i class="bi bi-check-circle d-block mb-1" style="font-size:1.5rem;color:#15803d"></i>
           Nenhuma conta pendente!
         </div>
@@ -90,124 +144,48 @@
     </div>
   </div>
 
-  <!-- Últimas movimentações -->
+  <!-- Despesas -->
   <div class="col-lg-6">
-    <div class="table-card">
-      <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
-        <span style="font-weight:600;font-size:0.875rem"><i class="bi bi-list-ul me-1"></i>Últimas movimentações</span>
-        <a href="{% url 'fluxo_caixa' %}" style="font-size:0.75rem;color:#3b82f6">Ver fluxo completo</a>
+    <div class="fin-card">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div style="font-weight:600;font-size:0.875rem">
+          <i class="bi bi-receipt text-danger me-1"></i>Últimas despesas
+        </div>
+        <button class="btn btn-sm btn-outline-danger" style="font-size:0.75rem" onclick="abrirModalDespesa()">
+          <i class="bi bi-plus me-1"></i>Nova
+        </button>
       </div>
-      <div style="max-height:300px;overflow-y:auto">
-        {% for mov in ultimas_movimentacoes %}
-        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.6rem 1rem;border-bottom:1px solid #f1f5f9">
-          <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;background:{% if mov.tipo == 'entrada' %}#d1fae5{% else %}#fee2e2{% endif %};color:{% if mov.tipo == 'entrada' %}#065f46{% else %}#7f1d1d{% endif %}">
-            <i class="bi bi-arrow-{% if mov.tipo == 'entrada' %}down{% else %}up{% endif %}"></i>
-          </div>
+
+      {% if ultimas_despesas %}
+        {% for despesa in ultimas_despesas %}
+        <div class="conta-item">
           <div style="flex:1">
-            <div style="font-size:0.82rem;font-weight:500">{{ mov.descricao }}</div>
-            <div style="font-size:0.72rem;color:#64748b">{{ mov.data|date:"d/m" }} · {{ mov.get_categoria_display }}</div>
+            <div style="font-weight:600;font-size:0.85rem">{{ despesa.descricao }}</div>
+            <div style="font-size:0.72rem;color:#64748b">
+              {{ despesa.get_categoria_display }} · {{ despesa.data|date:"d/m/Y" }}
+            </div>
           </div>
-          <div style="font-weight:700;color:{% if mov.tipo == 'entrada' %}#15803d{% else %}#dc2626{% endif %};white-space:nowrap">
-            {% if mov.tipo == 'entrada' %}+{% else %}-{% endif %}R$ {{ mov.valor|floatformat:2 }}
+          <div style="font-weight:700;color:#dc2626;font-size:0.9rem;white-space:nowrap;margin-right:0.5rem">
+            R$ {{ despesa.valor|floatformat:2 }}
           </div>
-        </div>
-        {% empty %}
-          <div class="text-center py-4 text-muted" style="font-size:0.85rem">Nenhuma movimentação ainda.</div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Despesas e histórico -->
-<div class="row g-3">
-  <div class="col-lg-6">
-    <div class="table-card">
-      <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
-        <span style="font-weight:600;font-size:0.875rem"><i class="bi bi-receipt me-1"></i>Últimas despesas</span>
-        <button class="btn btn-sm btn-outline-danger" style="font-size:0.72rem" onclick="abrirModalDespesa()">+ Nova</button>
-      </div>
-      {% for d in ultimas_despesas %}
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 1rem;border-bottom:1px solid #f1f5f9">
-        <div>
-          <div style="font-size:0.82rem;font-weight:500">{{ d.descricao }}</div>
-          <div style="font-size:0.72rem;color:#64748b">{{ d.data|date:"d/m/Y" }} · {{ d.get_categoria_display }}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-weight:700;color:#dc2626">R$ {{ d.valor|floatformat:2 }}</div>
-          <div style="font-size:0.7rem;color:{% if d.pago %}#15803d{% else %}#d97706{% endif %}">
-            {% if d.pago %}Pago{% else %}Pendente{% endif %}
-          </div>
-        </div>
-      </div>
-      {% empty %}
-        <div class="text-center py-3 text-muted" style="font-size:0.85rem">Nenhuma despesa.</div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <div class="col-lg-6">
-    <div class="table-card">
-      <div class="p-3 border-bottom">
-        <span style="font-weight:600;font-size:0.875rem"><i class="bi bi-calendar3 me-1"></i>Histórico mensal</span>
-      </div>
-      <table class="table">
-        <thead><tr><th>Mês</th><th>Entradas</th><th>Saídas</th><th>Saldo</th></tr></thead>
-        <tbody>
-          {% for h in historico_mensal %}
-          <tr>
-            <td style="font-weight:600;font-size:0.82rem">{{ h.mes_nome }}</td>
-            <td style="color:#15803d;font-size:0.82rem">R$ {{ h.entradas|floatformat:2 }}</td>
-            <td style="color:#dc2626;font-size:0.82rem">R$ {{ h.saidas|floatformat:2 }}</td>
-            <td style="font-weight:700;color:{% if h.saldo >= 0 %}#15803d{% else %}#dc2626{% endif %};font-size:0.82rem">
-              R$ {{ h.saldo|floatformat:2 }}
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="4" class="text-center text-muted py-3">Nenhum histórico ainda.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- Modal receber pagamento -->
-<div class="modal fade" id="modalReceber" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0" style="border-radius:16px">
-      <div class="modal-body p-4">
-        <h5 class="mb-3" style="font-size:1rem;font-weight:700">
-          <i class="bi bi-cash-coin me-2 text-success"></i>Registrar recebimento
-        </h5>
-        <p class="text-muted mb-1" style="font-size:0.85rem">Cliente: <strong id="modal-rec-cliente"></strong></p>
-        <p class="text-muted mb-3" style="font-size:0.85rem">Valor pendente: <strong id="modal-rec-pendente" class="text-danger"></strong></p>
-        <form id="form-receber" method="post">
-          {% csrf_token %}
-          <div class="mb-3">
-            <label style="font-size:0.82rem;font-weight:600">Valor a receber (R$) <span class="text-danger">*</span></label>
-            <input type="number" name="valor" id="input-valor-receber" class="form-control mt-1"
-              placeholder="0,00" min="0.01" step="0.01">
-          </div>
-          <div class="mb-3">
-            <label style="font-size:0.82rem;font-weight:600">Forma de pagamento</label>
-            <select name="forma_pagamento" class="form-select mt-1">
-              <option value="dinheiro">Dinheiro</option>
-              <option value="pix">PIX</option>
-              <option value="debito">Cartão de Débito</option>
-              <option value="credito">Cartão de Crédito</option>
-            </select>
-          </div>
-          <div class="d-flex gap-2 mt-3">
-            <button type="button" class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn btn-success flex-fill">
-              <i class="bi bi-check-lg me-1"></i>Confirmar recebimento
+          <form method="post" action="{% url 'financeiro_excluir_despesa' despesa.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size:0.72rem;padding:0.25rem 0.5rem"
+              onclick="return confirm('Excluir esta despesa?')">
+              <i class="bi bi-trash"></i>
             </button>
-          </div>
-        </form>
-      </div>
+          </form>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-center text-muted py-3" style="font-size:0.82rem">
+          <i class="bi bi-receipt d-block mb-1" style="font-size:1.5rem"></i>
+          Nenhuma despesa registrada.
+        </div>
+      {% endif %}
     </div>
   </div>
+
 </div>
 
 <!-- Modal nova despesa -->
@@ -215,40 +193,44 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0" style="border-radius:16px">
       <div class="modal-body p-4">
-        <h5 class="mb-3" style="font-size:1rem;font-weight:700">
-          <i class="bi bi-dash-circle me-2 text-danger"></i>Nova despesa
-        </h5>
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="mb-0" style="font-size:1rem;font-weight:700">
+            <i class="bi bi-dash-circle me-2 text-danger"></i>Nova despesa
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
         <form method="post" action="{% url 'financeiro_nova_despesa' %}">
           {% csrf_token %}
           <div class="row g-3">
             <div class="col-12">
               <label style="font-size:0.82rem;font-weight:600">Descrição <span class="text-danger">*</span></label>
-              <input type="text" name="descricao" class="form-control mt-1" placeholder="Ex: Compra de mercadoria">
+              <input type="text" name="descricao" class="form-control mt-1"
+                placeholder="Ex: Aluguel de março, Compra de mercadoria..." required autofocus>
             </div>
             <div class="col-md-6">
               <label style="font-size:0.82rem;font-weight:600">Categoria</label>
               <select name="categoria" class="form-select mt-1">
-                {% for val, label in categorias %}
-                  <option value="{{ val }}">{{ label }}</option>
+                {% for valor, label in categorias %}
+                  <option value="{{ valor }}">{{ label }}</option>
                 {% endfor %}
               </select>
-            </div>
-            <div class="col-md-6">
-              <label style="font-size:0.82rem;font-weight:600">Valor (R$) <span class="text-danger">*</span></label>
-              <input type="number" name="valor" class="form-control mt-1" placeholder="0,00" min="0" step="0.01">
             </div>
             <div class="col-md-6">
               <label style="font-size:0.82rem;font-weight:600">Data</label>
               <input type="date" name="data" class="form-control mt-1" value="{{ hoje|date:'Y-m-d' }}">
             </div>
-            <div class="col-md-6 d-flex align-items-end">
-              <div class="form-check mb-2">
-                <input type="checkbox" name="pago" id="desp-pago" class="form-check-input" checked>
-                <label for="desp-pago" class="form-check-label" style="font-size:0.85rem">Já foi pago</label>
-              </div>
+            <div class="col-12">
+              <label style="font-size:0.82rem;font-weight:600">Valor (R$) <span class="text-danger">*</span></label>
+              <input type="number" name="valor" class="form-control mt-1"
+                placeholder="0,00" min="0.01" step="0.01" required>
+            </div>
+            <div class="col-12">
+              <label style="font-size:0.82rem;font-weight:600">Observação</label>
+              <input type="text" name="observacao" class="form-control mt-1" placeholder="Opcional...">
             </div>
           </div>
-          <div class="d-flex gap-2 mt-3">
+          <div class="d-flex gap-2 mt-4">
             <button type="button" class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancelar</button>
             <button type="submit" class="btn btn-danger flex-fill">
               <i class="bi bi-check-lg me-1"></i>Registrar despesa
@@ -260,68 +242,57 @@
   </div>
 </div>
 
-<!-- Modal relatório -->
-<div class="modal fade" id="modalRelatorio" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0" style="border-radius:16px">
-      <div class="modal-body p-4">
-        <h5 class="mb-3" style="font-size:1rem;font-weight:700">
-          <i class="bi bi-envelope me-2 text-success"></i>Enviar relatório mensal
-        </h5>
-        <form method="post" action="{% url 'enviar_relatorio' %}">
-          {% csrf_token %}
-          <div class="row g-3">
-            <div class="col-6">
-              <label style="font-size:0.82rem;font-weight:600">Mês</label>
-              <select name="mes" class="form-select mt-1">
-                {% for i, nome in "1,Janeiro;2,Fevereiro;3,Marco;4,Abril;5,Maio;6,Junho;7,Julho;8,Agosto;9,Setembro;10,Outubro;11,Novembro;12,Dezembro"|split:";" %}
-                {% endfor %}
-                <option value="1">Janeiro</option><option value="2">Fevereiro</option>
-                <option value="3">Marco</option><option value="4">Abril</option>
-                <option value="5">Maio</option><option value="6" selected>Junho</option>
-                <option value="7">Julho</option><option value="8">Agosto</option>
-                <option value="9">Setembro</option><option value="10">Outubro</option>
-                <option value="11">Novembro</option><option value="12">Dezembro</option>
-              </select>
-            </div>
-            <div class="col-6">
-              <label style="font-size:0.82rem;font-weight:600">Ano</label>
-              <input type="number" name="ano" class="form-control mt-1" value="{{ hoje.year }}">
-            </div>
-            <div class="col-12">
-              <label style="font-size:0.82rem;font-weight:600">Email <span class="text-danger">*</span></label>
-              <input type="email" name="email" class="form-control mt-1" placeholder="seu@gmail.com" required>
-            </div>
-          </div>
-          <div class="d-flex gap-2 mt-3">
-            <button type="button" class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn btn-success flex-fill">
-              <i class="bi bi-send me-1"></i>Enviar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+
+<!-- Histórico mensal -->
+<div class="table-card mt-3">
+  <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+    <span style="font-weight:600;font-size:0.875rem">
+      <i class="bi bi-calendar3 me-1 text-primary"></i>Histórico de faturamento mensal
+    </span>
+    <span style="font-size:0.75rem;color:#64748b">Atualizado automaticamente todo mês</span>
   </div>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Mês</th>
+        <th>Vendas</th>
+        <th>Faturamento</th>
+        <th>Despesas</th>
+        <th>Lucro</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in historico_mensal %}
+      <tr>
+        <td style="font-weight:600;font-size:0.85rem">{{ h.mes_nome }}</td>
+        <td style="font-size:0.82rem;color:#64748b">{{ h.qtd_vendas }} venda{{ h.qtd_vendas|pluralize }}</td>
+        <td style="font-weight:700;color:#15803d">R$ {{ h.total_vendas|floatformat:2 }}</td>
+        <td style="font-weight:600;color:#dc2626">R$ {{ h.total_despesas|floatformat:2 }}</td>
+        <td>
+          <span style="font-weight:700;color:{% if h.lucro >= 0 %}#15803d{% else %}#dc2626{% endif %}">
+            R$ {{ h.lucro|floatformat:2 }}
+          </span>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="text-center text-muted py-3" style="font-size:0.85rem">
+          Nenhuma venda registrada ainda.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 
 {% endblock %}
 
 {% block extra_js %}
 <script>
-function abrirModalReceber(contaId, cliente, pendente) {
-  document.getElementById('modal-rec-cliente').textContent = cliente;
-  document.getElementById('modal-rec-pendente').textContent = 'R$ ' + parseFloat(pendente).toFixed(2).replace('.', ',');
-  document.getElementById('input-valor-receber').value = parseFloat(pendente).toFixed(2);
-  document.getElementById('input-valor-receber').max = parseFloat(pendente).toFixed(2);
-  document.getElementById('form-receber').action = '/financeiro/receber/' + contaId + '/';
-  new bootstrap.Modal(document.getElementById('modalReceber')).show();
-}
 function abrirModalDespesa() {
   new bootstrap.Modal(document.getElementById('modalDespesa')).show();
 }
-function abrirModalRelatorio() {
-  new bootstrap.Modal(document.getElementById('modalRelatorio')).show();
-}
 </script>
 {% endblock %}
+
+<!-- ESTE BLOCO SERÁ INSERIDO ANTES DO endblock content -->
