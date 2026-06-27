@@ -207,7 +207,7 @@
 function confirmarPagamento(contaId, valor, descricao) {
   document.getElementById('modal-pag-desc').textContent = descricao;
   document.getElementById('modal-pag-valor').textContent = valor;
-  document.getElementById('form-pagamento').action = '/financeiro/baixa/' + contaId + '/';
+  document.getElementById('form-pagamento').action = '/financeiro/receber/' + contaId + '/';
   new bootstrap.Modal(document.getElementById('modalPagamento')).show();
 }
 
