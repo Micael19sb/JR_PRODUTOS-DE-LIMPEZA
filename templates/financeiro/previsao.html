@@ -1,0 +1,124 @@
+{% extends 'base/base.html' %}
+{% block title %}Previsão de Caixa{% endblock %}
+{% block page_title %}Previsão de Caixa{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'financeiro_lista' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Financeiro
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Cards -->
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      <div class="stat-label">Saldo atual</div>
+      <div class="stat-value {% if saldo_atual >= 0 %}text-success{% else %}text-danger{% endif %}">
+        R$ {{ saldo_atual|floatformat:2 }}
+      </div>
+      <div style="font-size:0.72rem;color:#64748b">Disponível agora</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      <div class="stat-label">Entradas previstas</div>
+      <div class="stat-value text-success">R$ {{ total_previsto_receber|floatformat:2 }}</div>
+      <div style="font-size:0.72rem;color:#64748b">{{ contas_previstas|length }} conta(s) a receber</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      <div class="stat-label">Saídas previstas</div>
+      <div class="stat-value text-danger">R$ {{ total_previsto_pagar|floatformat:2 }}</div>
+      <div style="font-size:0.72rem;color:#64748b">{{ despesas_futuras|length }} despesa(s) pendente(s)</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      <div class="stat-label">Saldo projetado</div>
+      <div class="stat-value {% if saldo_projetado >= 0 %}text-success{% else %}text-danger{% endif %}">
+        R$ {{ saldo_projetado|floatformat:2 }}
+      </div>
+      <div style="font-size:0.72rem;color:#64748b">Em 30 dias</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Contas a receber previstas -->
+  <div class="col-lg-6">
+    <div class="table-card">
+      <div class="p-3 border-bottom" style="font-weight:600;font-size:0.875rem">
+        <i class="bi bi-arrow-down-circle text-success me-1"></i>Entradas previstas (próx. 30 dias)
+      </div>
+      <table class="table">
+        <thead><tr><th>Cliente</th><th>Valor</th><th>Vencimento</th></tr></thead>
+        <tbody>
+          {% for conta in contas_previstas %}
+          <tr>
+            <td style="font-size:0.82rem;font-weight:500">{{ conta.cliente.nome }}</td>
+            <td style="font-weight:700;color:#15803d">R$ {{ conta.valor_pendente|floatformat:2 }}</td>
+            <td style="font-size:0.78rem;color:{% if conta.vencida %}#dc2626{% else %}#64748b{% endif %}">
+              {{ conta.vencimento|date:"d/m/Y" }}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="text-center text-muted py-3" style="font-size:0.85rem">Nenhuma entrada prevista.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Despesas futuras -->
+  <div class="col-lg-6">
+    <div class="table-card">
+      <div class="p-3 border-bottom" style="font-weight:600;font-size:0.875rem">
+        <i class="bi bi-arrow-up-circle text-danger me-1"></i>Saídas previstas (próx. 30 dias)
+      </div>
+      <table class="table">
+        <thead><tr><th>Descrição</th><th>Valor</th><th>Data</th></tr></thead>
+        <tbody>
+          {% for d in despesas_futuras %}
+          <tr>
+            <td style="font-size:0.82rem;font-weight:500">{{ d.descricao }}</td>
+            <td style="font-weight:700;color:#dc2626">R$ {{ d.valor|floatformat:2 }}</td>
+            <td style="font-size:0.78rem;color:#64748b">{{ d.data|date:"d/m/Y" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="text-center text-muted py-3" style="font-size:0.85rem">Nenhuma despesa prevista.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  {% if timeline %}
+  <div class="col-12">
+    <div class="table-card">
+      <div class="p-3 border-bottom" style="font-weight:600;font-size:0.875rem">
+        <i class="bi bi-calendar-range me-1"></i>Timeline de movimentações previstas
+      </div>
+      <table class="table">
+        <thead><tr><th>Data</th><th>Entradas</th><th>Saídas</th><th>Saldo projetado</th></tr></thead>
+        <tbody>
+          {% for item in timeline %}
+          <tr>
+            <td style="font-size:0.82rem;font-weight:600">{{ item.data|date:"d/m/Y" }}</td>
+            <td style="color:#15803d;font-size:0.82rem">{% if item.entradas > 0 %}+ R$ {{ item.entradas|floatformat:2 }}{% endif %}</td>
+            <td style="color:#dc2626;font-size:0.82rem">{% if item.saidas > 0 %}- R$ {{ item.saidas|floatformat:2 }}{% endif %}</td>
+            <td style="font-weight:700;color:{% if item.saldo >= 0 %}#15803d{% else %}#dc2626{% endif %}">
+              R$ {{ item.saldo|floatformat:2 }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
