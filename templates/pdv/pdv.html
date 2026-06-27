@@ -462,6 +462,8 @@ function finalizarVenda() {
       cliente_id: document.getElementById('sel-cliente').value || null,
       desconto: parseFloat(document.getElementById('desconto').value)||0,
       vencimento_fiado: document.getElementById('vencimento-fiado').value || null,
+      valor_recebido: formaPagamento === 'dinheiro' ? (parseFloat(document.getElementById('valor-recebido').value)||null) : null,
+      troco: formaPagamento === 'dinheiro' ? (parseFloat(document.getElementById('valor-troco')?.textContent?.replace('R$ ','')?.replace(',','.'))||null) : null,
     })
   })
   .then(r => r.json())

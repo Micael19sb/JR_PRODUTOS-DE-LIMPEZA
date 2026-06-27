@@ -91,6 +91,8 @@ def finalizar_venda(request):
         cliente_id = data.get('cliente_id')
         desconto = Decimal(str(data.get('desconto', 0)))
         vencimento_fiado = data.get('vencimento_fiado')
+        valor_recebido = data.get('valor_recebido')
+        troco = data.get('troco')
 
         if not itens:
             return JsonResponse({'erro': 'Carrinho vazio'}, status=400)
@@ -103,6 +105,8 @@ def finalizar_venda(request):
             cliente=cliente,
             forma_pagamento=forma_pagamento,
             desconto=desconto,
+            valor_recebido=Decimal(str(valor_recebido)) if valor_recebido else None,
+            troco=Decimal(str(troco)) if troco else None,
             criada_por=request.user,
         )
 

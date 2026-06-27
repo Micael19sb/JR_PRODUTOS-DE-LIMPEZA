@@ -113,10 +113,8 @@ def fluxo_caixa(request):
     except:
         data_sel = hoje
 
-    # Buscar fechamento do dia anterior para saldo abertura
-    dia_anterior = data_sel - timedelta(days=1)
-    fechamento_anterior = FechamentoCaixa.objects.filter(data=dia_anterior).first()
-    saldo_abertura = fechamento_anterior.saldo_fechamento if fechamento_anterior else Decimal('0')
+    # Caixa sempre começa zerado
+    saldo_abertura = Decimal('0')
 
     # Vendas do dia
     vendas_dia = Venda.objects.filter(
@@ -130,13 +128,32 @@ def fluxo_caixa(request):
     # Montar movimentacoes em ordem cronologica
     movimentacoes = []
     for v in vendas_dia:
-        movimentacoes.append({
-            'tipo': 'entrada',
-            'hora': v.criada_em.strftime('%H:%M'),
-            'descricao': f'Venda #{v.pk} — {v.get_forma_pagamento_display()}',
-            'cliente': v.cliente.nome if v.cliente else 'Consumidor final',
-            'valor': v.total,
-        })
+        if v.forma_pagamento == 'dinheiro' and v.valor_recebido:
+            # Entrada: valor recebido
+            movimentacoes.append({
+                'tipo': 'entrada',
+                'hora': v.criada_em.strftime('%H:%M'),
+                'descricao': f'Venda #{v.pk} — Dinheiro (recebido)',
+                'cliente': v.cliente.nome if v.cliente else 'Consumidor final',
+                'valor': v.valor_recebido,
+            })
+            # Saida: troco
+            if v.troco and v.troco > 0:
+                movimentacoes.append({
+                    'tipo': 'saida',
+                    'hora': v.criada_em.strftime('%H:%M'),
+                    'descricao': f'Troco — Venda #{v.pk}',
+                    'cliente': 'Troco devolvido',
+                    'valor': v.troco,
+                })
+        else:
+            movimentacoes.append({
+                'tipo': 'entrada',
+                'hora': v.criada_em.strftime('%H:%M'),
+                'descricao': f'Venda #{v.pk} — {v.get_forma_pagamento_display()}',
+                'cliente': v.cliente.nome if v.cliente else 'Consumidor final',
+                'valor': v.total,
+            })
     for d in despesas_dia:
         movimentacoes.append({
             'tipo': 'saida',
@@ -149,10 +166,14 @@ def fluxo_caixa(request):
     movimentacoes.sort(key=lambda x: x['hora'])
 
     # Totais
-    total_entradas = sum(v.total for v in vendas_dia)
-    total_saidas = despesas_dia.aggregate(t=Sum('valor'))['t'] or Decimal('0')
+    total_entradas = sum(
+        v.valor_recebido if (v.forma_pagamento == 'dinheiro' and v.valor_recebido) else v.total
+        for v in vendas_dia
+    )
+    total_troco = sum(v.troco for v in vendas_dia if v.forma_pagamento == 'dinheiro' and v.troco)
+    total_saidas = (despesas_dia.aggregate(t=Sum('valor'))['t'] or Decimal('0')) + total_troco
     saldo_dia = total_entradas - total_saidas
-    saldo_acumulado = saldo_abertura + saldo_dia
+    saldo_acumulado = saldo_dia
 
     # Fechamento do dia
     fechamento_hoje = FechamentoCaixa.objects.filter(data=data_sel).first()

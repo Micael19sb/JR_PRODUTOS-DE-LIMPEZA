@@ -27,6 +27,8 @@ class Venda(models.Model):
     desconto = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     observacao = models.TextField(blank=True)
     criada_em = models.DateTimeField(auto_now_add=True)
+    valor_recebido = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    troco = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     criada_por = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True)
 
     class Meta:
