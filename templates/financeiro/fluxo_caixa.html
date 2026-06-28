@@ -54,7 +54,13 @@
 
 <!-- Cards de resumo -->
 <div class="row g-3 mb-3">
-  <div class="col-6 col-md-4">
+  <div class="col-6 col-md-3">
+    <div class="fc-card text-center">
+      <div style="font-size:0.72rem;color:#64748b;font-weight:600;text-transform:uppercase">Saldo abertura</div>
+      <div class="fc-valor-neutro mt-1" style="font-size:1.1rem">R$ {{ saldo_abertura|floatformat:2 }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
     <div class="fc-card text-center">
       <div style="font-size:0.72rem;color:#64748b;font-weight:600;text-transform:uppercase">
         <i class="bi bi-arrow-down-circle text-success me-1"></i>Entradas
@@ -63,7 +69,7 @@
       <div style="font-size:0.72rem;color:#64748b">{{ qtd_vendas }} venda{{ qtd_vendas|pluralize }}</div>
     </div>
   </div>
-  <div class="col-6 col-md-4">
+  <div class="col-6 col-md-3">
     <div class="fc-card text-center">
       <div style="font-size:0.72rem;color:#64748b;font-weight:600;text-transform:uppercase">
         <i class="bi bi-arrow-up-circle text-danger me-1"></i>Saidas
@@ -71,9 +77,9 @@
       <div class="fc-valor-negativo mt-1" style="font-size:1.1rem">R$ {{ total_saidas|floatformat:2 }}</div>
     </div>
   </div>
-  <div class="col-6 col-md-4">
+  <div class="col-6 col-md-3">
     <div class="fc-card text-center">
-      <div style="font-size:0.72rem;color:#64748b;font-weight:600;text-transform:uppercase">Saldo do dia</div>
+      <div style="font-size:0.72rem;color:#64748b;font-weight:600;text-transform:uppercase">Saldo acumulado</div>
       <div class="mt-1 {% if saldo_acumulado >= 0 %}fc-valor-positivo{% else %}fc-valor-negativo{% endif %}" style="font-size:1.1rem">
         R$ {{ saldo_acumulado|floatformat:2 }}
       </div>
@@ -169,6 +175,10 @@
 
           <div class="mb-2" style="font-size:0.82rem">
             <div class="d-flex justify-content-between">
+              <span style="color:#64748b">Saldo abertura</span>
+              <span>R$ {{ saldo_abertura|floatformat:2 }}</span>
+            </div>
+            <div class="d-flex justify-content-between">
               <span style="color:#15803d">+ Entradas</span>
               <span style="color:#15803d">R$ {{ total_entradas|floatformat:2 }}</span>
             </div>
@@ -177,7 +187,7 @@
               <span style="color:#dc2626">R$ {{ total_saidas|floatformat:2 }}</span>
             </div>
             <div class="d-flex justify-content-between border-top mt-1 pt-1">
-              <span style="font-weight:700">Saldo do dia</span>
+              <span style="font-weight:700">Saldo final</span>
               <span style="font-weight:700;color:#1e40af">R$ {{ saldo_acumulado|floatformat:2 }}</span>
             </div>
           </div>

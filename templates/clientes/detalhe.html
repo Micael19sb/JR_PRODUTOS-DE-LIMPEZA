@@ -85,10 +85,10 @@
           {% for conta in contas %}
           <tr>
             <td style="font-size:0.85rem">{{ conta.descricao }}</td>
-            <td style="font-weight:600;color:#1e40af">R$ {{ conta.valor_total|floatformat:2 }}</td>
+            <td style="font-weight:600;color:#1e40af">R$ {{ conta.valor|floatformat:2 }}</td>
             <td style="font-size:0.85rem">{{ conta.vencimento|date:"d/m/Y" }}</td>
             <td>
-              {% if conta.status == 'quitado' %}
+              {% if conta.pago %}
                 <span class="badge badge-status-ok" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Pago</span>
               {% elif conta.vencida %}
                 <span class="badge badge-fiado" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Vencida</span>
@@ -97,7 +97,7 @@
               {% endif %}
             </td>
             <td>
-              {% if conta.status != 'quitado' %}
+              {% if not conta.pago %}
               <button class="btn btn-sm btn-success" style="font-size:0.72rem;padding:0.25rem 0.6rem"
                 onclick="confirmarPagamento({{ conta.pk }}, 'R$ {{ conta.valor|floatformat:2 }}', '{{ conta.descricao|escapejs }}')">
                 <i class="bi bi-check-lg me-1"></i>Recebido
@@ -207,7 +207,7 @@
 function confirmarPagamento(contaId, valor, descricao) {
   document.getElementById('modal-pag-desc').textContent = descricao;
   document.getElementById('modal-pag-valor').textContent = valor;
-  document.getElementById('form-pagamento').action = '/financeiro/receber/' + contaId + '/';
+  document.getElementById('form-pagamento').action = '/financeiro/baixa/' + contaId + '/';
   new bootstrap.Modal(document.getElementById('modalPagamento')).show();
 }
 

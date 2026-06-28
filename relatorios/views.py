@@ -17,7 +17,7 @@ def dashboard(request):
 
     vendas_qs = Venda.objects.filter(status='concluida')
     estoques_qs = Estoque.objects.all()
-    contas_qs = ContaReceber.objects.exclude(status='quitado')
+    contas_qs = ContaReceber.objects.filter(pago=False)
     lojas = Loja.objects.filter(ativa=True)
 
     # Totais do dia
@@ -29,7 +29,7 @@ def dashboard(request):
     total_mes = sum(v.total for v in vendas_mes)
 
     # A receber: contas a receber cadastradas + vendas fiado sem conta gerada
-    total_contas = sum(c.valor_pendente for c in contas_qs)
+    total_contas = contas_qs.aggregate(t=Sum('valor'))['t'] or Decimal('0')
 
     # Vendas fiado que não geraram ContaReceber (ex: consumidor final)
     vendas_fiado_sem_conta = vendas_qs.filter(
@@ -55,7 +55,7 @@ def dashboard(request):
         saldo = cliente.saldo_devedor
         if saldo > 0:
             # Verificar se tem conta vencida
-            tem_vencida = any(c.vencida for c in cliente.contas.exclude(status='quitado'))
+            tem_vencida = any(c.vencida for c in cliente.contas.filter(pago=False))
             clientes_devedores.append({
                 'cliente': cliente,
                 'saldo': saldo,
