@@ -59,7 +59,7 @@
           {% for conta in contas_previstas %}
           <tr>
             <td style="font-size:0.82rem;font-weight:500">{{ conta.cliente.nome }}</td>
-            <td style="font-weight:700;color:#15803d">R$ {{ conta.valor_pendente|floatformat:2 }}</td>
+            <td style="font-weight:700;color:#15803d">R$ {{ conta.valor|floatformat:2 }}</td>
             <td style="font-size:0.78rem;color:{% if conta.vencida %}#dc2626{% else %}#64748b{% endif %}">
               {{ conta.vencimento|date:"d/m/Y" }}
             </td>

@@ -234,7 +234,8 @@ def fechar_caixa(request):
             fechamento.save()
 
         messages.success(request, f'Caixa do dia {data_caixa.strftime("%d/%m/%Y")} fechado! Saldo: R$ {saldo_fechamento}')
-    return redirect(f'/financeiro/fluxo/?data={data_str}')
+        return redirect(f'/financeiro/fluxo/?data={data_str}')
+    return redirect('fluxo_caixa')
 
 
 @login_required
