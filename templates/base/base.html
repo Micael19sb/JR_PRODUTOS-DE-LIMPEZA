@@ -251,10 +251,12 @@
 function abrirMenu() {
   document.getElementById('sidebar').classList.add('aberto');
   document.getElementById('overlay').classList.add('ativo');
+  document.getElementById('btnMenu').style.display = 'none';
 }
 function fecharMenu() {
   document.getElementById('sidebar').classList.remove('aberto');
   document.getElementById('overlay').classList.remove('ativo');
+  document.getElementById('btnMenu').style.display = 'block';
 }
 // Fechar ao clicar em qualquer link
 document.addEventListener('DOMContentLoaded', function() {
