@@ -122,6 +122,14 @@
     }
     .sidebar-overlay.ativo { display: block; }
 
+    @media (max-width: 400px) {
+      .topbar-title { font-size: 0.75rem; }
+      .page-content { padding: 0.75rem 0.5rem; }
+      .stat-card .stat-value { font-size: 1rem; }
+      .stat-card { padding: 0.65rem; }
+      .produtos-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important; }
+    }
+
     @media (max-width: 768px) {
       .btn-menu-mobile { display: block; }
       #sidebar {
@@ -199,14 +207,7 @@
 
   
   <div class="sidebar-footer">
-    <div class="loja-badge mb-2">
-      <i class="bi bi-shop me-1"></i>
-      {% if user.perfil.is_dono %}
-        Todas as lojas
-      {% else %}
-        {{ user.perfil.loja.cidade }}
-      {% endif %}
-    </div>
+
     <div class="d-flex align-items-center justify-content-between mt-2">
       <small class="text-secondary" style="font-size:0.75rem">{{ user.get_full_name|default:user.username }}</small>
       <form method="post" action="{% url 'logout' %}" style="display:inline">
