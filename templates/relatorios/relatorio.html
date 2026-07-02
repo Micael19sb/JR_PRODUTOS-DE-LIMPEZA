@@ -1,0 +1,435 @@
+{% extends 'base/base.html' %}
+{% block title %}Relatório — {{ mes_nome }}/{{ ano }}{% endblock %}
+{% block page_title %}Relatório Mensal{% endblock %}
+
+{% block topbar_actions %}
+  <button class="btn btn-sm btn-success" onclick="imprimirRelatorio()">
+    <i class="bi bi-printer me-1"></i>Salvar PDF
+  </button>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .rel-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    height: 100%;
+  }
+  .rel-card-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+  }
+  .rel-valor {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+  .rel-valor.verde { color: #15803d; }
+  .rel-valor.vermelho { color: #dc2626; }
+  .rel-valor.azul { color: #1e40af; }
+  .chart-container {
+    position: relative;
+    width: 100%;
+  }
+  .produto-parado {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.82rem;
+  }
+  .produto-parado:last-child { border-bottom: none; }
+  .ranking-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.82rem;
+  }
+  .ranking-item:last-child { border-bottom: none; }
+  .ranking-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: #1e40af;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .ranking-num.top1 { background: #f59e0b; }
+  .ranking-num.top2 { background: #94a3b8; }
+  .ranking-num.top3 { background: #cd7c2f; }
+  .periodo-select {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #1e293b;
+    cursor: pointer;
+  }
+  .whatsapp-btn {
+    background: #25d366;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    text-decoration: none;
+  }
+  .whatsapp-btn:hover { background: #20bd5a; color: #fff; }
+
+  @media print {
+    .btn-menu-mobile, #sidebar, .topbar, .whatsapp-btn,
+    .btn, form, .periodo-select { display: none !important; }
+    #main { margin-left: 0 !important; }
+    .page-content { padding: 0 !important; }
+    .rel-card { break-inside: avoid; }
+  }
+
+  @media (max-width: 768px) {
+    .rel-valor { font-size: 1.2rem; }
+    .rel-card { padding: 0.85rem; margin-bottom: 0.75rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Seletor de período + botões -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+  <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+    <span style="font-size:0.82rem;font-weight:600;color:#64748b">Período:</span>
+    <select name="mes" class="periodo-select" onchange="this.form.submit()">
+      {% for op in opcoes_periodo %}
+        <option value="{{ op.mes }}" {% if op.selecionado %}selected{% endif %}
+          data-ano="{{ op.ano }}">{{ op.label }}</option>
+      {% endfor %}
+    </select>
+    <input type="hidden" name="ano" id="ano-hidden" value="{{ ano }}">
+  </form>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="#" class="whatsapp-btn" onclick="compartilharWhatsApp(); return false;">
+      <i class="bi bi-whatsapp"></i> WhatsApp
+    </a>
+    <button class="btn btn-sm btn-outline-primary" onclick="imprimirRelatorio()">
+      <i class="bi bi-file-pdf me-1"></i>PDF
+    </button>
+  </div>
+</div>
+
+<!-- Cards de resumo -->
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="rel-card text-center">
+      <div class="rel-card-title"><i class="bi bi-cart-check me-1"></i>Vendas</div>
+      <div class="rel-valor azul">{{ qtd_vendas }}</div>
+      <div style="font-size:0.72rem;color:#64748b">vendas no mês</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="rel-card text-center">
+      <div class="rel-card-title"><i class="bi bi-arrow-down-circle me-1"></i>Faturamento</div>
+      <div class="rel-valor azul">R$ {{ total_vendas|floatformat:2 }}</div>
+      <div style="font-size:0.72rem;color:#64748b">{{ mes_nome }}/{{ ano }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="rel-card text-center">
+      <div class="rel-card-title"><i class="bi bi-arrow-up-circle me-1"></i>Despesas</div>
+      <div class="rel-valor vermelho">R$ {{ total_despesas|floatformat:2 }}</div>
+      <div style="font-size:0.72rem;color:#64748b">{{ mes_nome }}/{{ ano }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="rel-card text-center">
+      <div class="rel-card-title"><i class="bi bi-graph-up me-1"></i>Lucro Real</div>
+      <div class="rel-valor {% if lucro >= 0 %}verde{% else %}vermelho{% endif %}">
+        R$ {{ lucro|floatformat:2 }}
+      </div>
+      <div style="font-size:0.72rem;color:#64748b">Faturamento − Despesas</div>
+    </div>
+  </div>
+</div>
+
+<!-- Gráfico faturamento diário + pagamentos -->
+<div class="row g-3 mb-3">
+  <div class="col-lg-8">
+    <div class="rel-card">
+      <div class="rel-card-title"><i class="bi bi-graph-up-arrow me-1"></i>Faturamento diário</div>
+      <div class="chart-container" style="height:220px">
+        <canvas id="grafico-diario"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="rel-card">
+      <div class="rel-card-title"><i class="bi bi-pie-chart me-1"></i>Por forma de pagamento</div>
+      <div class="chart-container" style="height:220px">
+        <canvas id="grafico-pagamento"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Gráfico histórico 6 meses -->
+<div class="row g-3 mb-3">
+  <div class="col-12">
+    <div class="rel-card">
+      <div class="rel-card-title"><i class="bi bi-bar-chart me-1"></i>Histórico dos últimos 6 meses</div>
+      <div class="chart-container" style="height:240px">
+        <canvas id="grafico-historico"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Top produtos + produtos parados -->
+<div class="row g-3 mb-3">
+
+  <!-- Top 10 mais vendidos -->
+  <div class="col-lg-6">
+    <div class="rel-card">
+      <div class="rel-card-title"><i class="bi bi-trophy me-1 text-warning"></i>Top produtos mais vendidos</div>
+
+      {% if top_produtos %}
+        <!-- Gráfico de barras horizontal -->
+        <div class="chart-container mb-3" style="height:200px">
+          <canvas id="grafico-top"></canvas>
+        </div>
+        <!-- Ranking detalhado -->
+        {% for p in top_produtos %}
+        <div class="ranking-item">
+          <div class="ranking-num {% if forloop.counter == 1 %}top1{% elif forloop.counter == 2 %}top2{% elif forloop.counter == 3 %}top3{% endif %}">
+            {{ forloop.counter }}
+          </div>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:0.82rem">{{ p.produto__nome }}</div>
+            <div style="font-size:0.7rem;color:#94a3b8">{{ p.total_qtd }} und vendidas</div>
+          </div>
+          <div style="font-weight:700;color:#1e40af;font-size:0.82rem;white-space:nowrap">
+            R$ {{ p.total_valor|floatformat:2 }}
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-center text-muted py-4" style="font-size:0.82rem">
+          <i class="bi bi-inbox d-block mb-2" style="font-size:1.5rem"></i>
+          Nenhuma venda registrada neste período.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Produtos parados -->
+  <div class="col-lg-6">
+    <div class="rel-card">
+      <div class="rel-card-title">
+        <i class="bi bi-exclamation-triangle me-1 text-danger"></i>
+        Produtos sem venda no mês
+        {% if produtos_parados %}
+          <span style="background:#fee2e2;color:#dc2626;border-radius:6px;padding:0.1rem 0.5rem;font-size:0.7rem;margin-left:0.4rem">
+            {{ produtos_parados|length }} produto{{ produtos_parados|length|pluralize }}
+          </span>
+        {% endif %}
+      </div>
+
+      {% if produtos_parados %}
+        <div style="font-size:0.75rem;color:#64748b;margin-bottom:0.75rem">
+          <i class="bi bi-info-circle me-1"></i>Esses produtos podem precisar de promoção ou revisão de preço.
+        </div>
+        <div style="max-height:380px;overflow-y:auto">
+          {% for p in produtos_parados %}
+          <div class="produto-parado">
+            <div>
+              <div style="font-weight:500">{{ p.nome }}</div>
+              <div style="font-size:0.7rem;color:#94a3b8">{{ p.categoria.nome|default:"Sem categoria" }}</div>
+            </div>
+            <div style="font-weight:700;color:#1e40af;white-space:nowrap;font-size:0.82rem">
+              R$ {{ p.preco_venda|floatformat:2 }}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-4" style="font-size:0.82rem;color:#15803d">
+          <i class="bi bi-check-circle d-block mb-2" style="font-size:1.5rem"></i>
+          Todos os produtos tiveram vendas este mês!
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const diasLabels   = {{ dias_labels|safe }};
+const diasValores  = {{ dias_valores|safe }};
+const pagLabels    = {{ pagamento_labels|safe }};
+const pagValores   = {{ pagamento_valores|safe }};
+const histLabels   = {{ historico_labels|safe }};
+const histFat      = {{ historico_faturamento|safe }};
+const histDesp     = {{ historico_despesas|safe }};
+const histLucro    = {{ historico_lucro|safe }};
+const topNomes     = {{ top_nomes|safe }};
+const topQtds      = {{ top_qtds|safe }};
+
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+Chart.defaults.font.size = 11;
+
+// Faturamento diário
+if (diasLabels.length > 0) {
+  new Chart(document.getElementById('grafico-diario'), {
+    type: 'line',
+    data: {
+      labels: diasLabels,
+      datasets: [{
+        label: 'Faturamento (R$)',
+        data: diasValores,
+        borderColor: '#1e40af',
+        backgroundColor: 'rgba(30,64,175,0.08)',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointBackgroundColor: '#1e40af',
+        tension: 0.3,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { callback: v => 'R$ ' + v.toFixed(0) } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+} else {
+  document.getElementById('grafico-diario').parentElement.innerHTML =
+    '<div class="text-center text-muted py-4" style="font-size:0.82rem"><i class="bi bi-inbox d-block mb-2" style="font-size:1.5rem"></i>Sem vendas neste período.</div>';
+}
+
+// Por forma de pagamento
+if (pagLabels.length > 0) {
+  new Chart(document.getElementById('grafico-pagamento'), {
+    type: 'doughnut',
+    data: {
+      labels: pagLabels,
+      datasets: [{
+        data: pagValores,
+        backgroundColor: ['#1e40af','#15803d','#d97706','#7c3aed','#dc2626','#0891b2'],
+        borderWidth: 2, borderColor: '#fff',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 10, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ctx.label + ': R$ ' + ctx.raw.toFixed(2) } }
+      }
+    }
+  });
+} else {
+  document.getElementById('grafico-pagamento').parentElement.innerHTML =
+    '<div class="text-center text-muted py-4" style="font-size:0.82rem">Sem dados.</div>';
+}
+
+// Histórico 6 meses
+new Chart(document.getElementById('grafico-historico'), {
+  type: 'bar',
+  data: {
+    labels: histLabels,
+    datasets: [
+      { label: 'Faturamento', data: histFat, backgroundColor: 'rgba(30,64,175,0.7)', borderRadius: 6 },
+      { label: 'Despesas',    data: histDesp, backgroundColor: 'rgba(220,38,38,0.7)', borderRadius: 6 },
+      { label: 'Lucro',       data: histLucro, backgroundColor: 'rgba(21,128,61,0.7)', borderRadius: 6 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom' } },
+    scales: {
+      y: { beginAtZero: true, ticks: { callback: v => 'R$ ' + v.toFixed(0) } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// Top produtos
+if (topNomes.length > 0) {
+  new Chart(document.getElementById('grafico-top'), {
+    type: 'bar',
+    data: {
+      labels: topNomes.map(n => n.length > 20 ? n.substring(0,20)+'…' : n),
+      datasets: [{
+        label: 'Quantidade vendida',
+        data: topQtds,
+        backgroundColor: [
+          '#f59e0b','#94a3b8','#cd7c2f',
+          '#1e40af','#1e40af','#1e40af',
+          '#1e40af','#1e40af','#1e40af','#1e40af'
+        ],
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+// Atualiza o ano hidden ao mudar o mês
+document.querySelector('select[name="mes"]').addEventListener('change', function() {
+  const opt = this.options[this.selectedIndex];
+  document.getElementById('ano-hidden').value = opt.dataset.ano;
+});
+
+function imprimirRelatorio() {
+  window.print();
+}
+
+function compartilharWhatsApp() {
+  const mes  = '{{ mes_nome }}';
+  const ano  = '{{ ano }}';
+  const fat  = 'R$ {{ total_vendas|floatformat:2 }}'.replace('.', ',');
+  const desp = 'R$ {{ total_despesas|floatformat:2 }}'.replace('.', ',');
+  const luc  = 'R$ {{ lucro|floatformat:2 }}'.replace('.', ',');
+  const qtd  = '{{ qtd_vendas }}';
+
+  const msg =
+    `📊 *Relatório ${mes}/${ano} — JR Produtos de Limpeza*\n\n` +
+    `🛒 *Vendas:* ${qtd} vendas\n` +
+    `💰 *Faturamento:* ${fat}\n` +
+    `📉 *Despesas:* ${desp}\n` +
+    `✅ *Lucro real:* ${luc}\n\n` +
+    `_Gerado pelo sistema JR Produtos de Limpeza_`;
+
+  window.open('https://wa.me/5581973856221?text=' + encodeURIComponent(msg), '_blank');
+}
+</script>
+{% endblock %}
