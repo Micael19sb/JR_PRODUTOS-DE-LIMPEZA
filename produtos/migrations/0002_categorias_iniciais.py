@@ -1,7 +1,7 @@
 from django.db import migrations
 
 
-CATEGORIAS = [
+CATEGORIAS_FINAIS = [
     'Água Sanitária',
     'Amaciante',
     'Automotivo',
@@ -24,15 +24,15 @@ CATEGORIAS = [
 ]
 
 
-def criar_categorias(apps, schema_editor):
+def limpar_e_recriar(apps, schema_editor):
     Categoria = apps.get_model('produtos', 'Categoria')
-    for nome in CATEGORIAS:
+    Categoria.objects.exclude(nome__in=CATEGORIAS_FINAIS).delete()
+    for nome in CATEGORIAS_FINAIS:
         Categoria.objects.get_or_create(nome=nome)
 
 
-def remover_categorias(apps, schema_editor):
-    Categoria = apps.get_model('produtos', 'Categoria')
-    Categoria.objects.filter(nome__in=CATEGORIAS).delete()
+def reverter(apps, schema_editor):
+    pass
 
 
 class Migration(migrations.Migration):
@@ -42,5 +42,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(criar_categorias, remover_categorias),
+        migrations.RunPython(limpar_e_recriar, reverter),
     ]
