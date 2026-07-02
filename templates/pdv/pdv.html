@@ -198,7 +198,7 @@
         </button>
       </div>
       <div id="campo-fiado" class="mt-2">
-        <label style="font-size:0.75rem;color:#64748b">Vencimento</label>
+        <label style="font-size:0.75rem;color:#64748b">Vencimento <span style="color:#94a3b8">(30 dias automático)</span></label>
         <input type="date" id="vencimento-fiado" class="form-control form-control-sm">
       </div>
 
@@ -440,6 +440,11 @@ function selecionarForma(btn) {
   const isDinheiro = formaPagamento === 'dinheiro';
 
   document.getElementById('campo-fiado').style.display = isFiado ? 'block' : 'none';
+  if (isFiado) {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    document.getElementById('vencimento-fiado').value = d.toISOString().split('T')[0];
+  }
   document.getElementById('bloco-cliente').style.display = isFiado ? 'block' : 'none';
   document.getElementById('campo-troco').style.display = isDinheiro ? 'block' : 'none';
 
