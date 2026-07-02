@@ -84,10 +84,9 @@
           {% endif %}
         </td>
         <td class="d-flex gap-1 align-items-center">
-          <button class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem"
-            onclick="abrirModalEditar({{ produto.pk }}, '{{ produto.codigo }}', '{{ produto.nome|escapejs }}', '{{ produto.categoria_id|default:'' }}', '{{ produto.unidade }}', '{{ produto.preco_custo }}', '{{ produto.preco_venda }}', {{ produto.ativo|yesno:'true,false' }})">
+          <a href="{% url 'produto_editar' produto.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem" title="Editar produto">
             <i class="bi bi-pencil"></i>
-          </button>
+          </a>
           <form method="post" action="{% url 'produto_toggle_ativo' produto.pk %}" style="display:inline">
             {% csrf_token %}
             {% if produto.ativo %}
