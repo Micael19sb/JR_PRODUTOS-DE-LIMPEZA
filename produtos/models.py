@@ -15,7 +15,7 @@ class Categoria(models.Model):
 
 class Produto(models.Model):
     UNIDADE_CHOICES = [
-        ('un', 'Unidade'),
+        ('un', 'UND'),
     ]
 
     codigo = models.CharField(max_length=50, unique=True)

@@ -177,18 +177,9 @@
           </div>
 
           <div class="col-md-6">
-            <label style="font-size:0.82rem;font-weight:600">Tamanho <span class="text-danger">*</span></label>
-            <div class="d-flex gap-2 mt-1">
-              <input type="number" id="np-tamanho" class="form-control" placeholder="Ex: 500" min="0" step="0.01" oninput="gerarNome()">
-              <select id="np-unidade" class="form-select" style="max-width:90px" onchange="gerarNome()">
-                <option value="ml">ml</option>
-                <option value="L">L</option>
-                <option value="kg">kg</option>
-                <option value="g">g</option>
-                <option value="un">un</option>
-                <option value="cx">cx</option>
-                <option value="pct">pct</option>
-              </select>
+            <label style="font-size:0.82rem;font-weight:600">Unidade</label>
+            <div class="form-control mt-1 d-flex align-items-center" style="background:#f8fafc;color:#475569;font-weight:600;cursor:default">
+              <i class="bi bi-box me-2"></i>UND — Unidade
             </div>
           </div>
 
@@ -259,13 +250,10 @@ function gerarNome() {
   const catSelect = document.getElementById('np-categoria');
   const catNome = catSelect.options[catSelect.selectedIndex]?.dataset.nome || '';
   const fragancia = document.getElementById('np-fragancia').value.trim();
-  const tamanho = document.getElementById('np-tamanho').value.trim();
-  const unidade = document.getElementById('np-unidade').value;
 
   let partes = [];
   if (catNome) partes.push(catNome);
   if (fragancia) partes.push(fragancia);
-  if (tamanho) partes.push(tamanho + unidade);
 
   const nome = partes.join(' ');
   document.getElementById('preview-nome').textContent = nome || '—';
@@ -276,8 +264,6 @@ function abrirModalProduto() {
   document.getElementById('np-codigo').value = '';
   document.getElementById('np-categoria').value = '';
   document.getElementById('np-fragancia').value = '';
-  document.getElementById('np-tamanho').value = '';
-  document.getElementById('np-unidade').value = 'ml';
   document.getElementById('np-nome').value = '';
   document.getElementById('np-custo').value = '0';
   document.getElementById('np-venda').value = '';
@@ -315,7 +301,7 @@ function salvarNovoProduto() {
       codigo,
       nome,
       categoria_id: document.getElementById('np-categoria').value || null,
-      unidade: document.getElementById('np-unidade').value,
+      unidade: 'un',
       preco_custo: document.getElementById('np-custo').value || '0',
       preco_venda: venda,
       estoque_inicial: document.getElementById('np-estoque').value || '0',
