@@ -41,17 +41,7 @@
               {% endfor %}
             </select>
           </div>
-          <div class="col-md-6">
-            <label class="form-label" style="font-size:0.82rem;font-weight:600">Unidade</label>
-            <select name="unidade" class="form-select">
-              {% for valor, label in unidades %}
-                <option value="{{ valor }}"
-                  {% if produto.unidade == valor %}selected{% endif %}>
-                  {{ label }}
-                </option>
-              {% endfor %}
-            </select>
-          </div>
+          <input type="hidden" name="unidade" value="un">
 
           <div class="col-md-6">
             <label class="form-label" style="font-size:0.82rem;font-weight:600">Preço de custo (R$)</label>

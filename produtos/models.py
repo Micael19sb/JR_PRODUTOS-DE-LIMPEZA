@@ -16,13 +16,6 @@ class Categoria(models.Model):
 class Produto(models.Model):
     UNIDADE_CHOICES = [
         ('un', 'Unidade'),
-        ('L', 'Litro'),
-        ('ml', 'Mililitro'),
-        ('kg', 'Quilograma'),
-        ('g', 'Grama'),
-        ('cx', 'Caixa'),
-        ('fardo', 'Fardo'),
-        ('pct', 'Pacote'),
     ]
 
     codigo = models.CharField(max_length=50, unique=True)

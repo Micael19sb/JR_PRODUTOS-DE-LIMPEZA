@@ -88,6 +88,17 @@ def editar(request, pk):
 
 @login_required
 @require_POST
+def toggle_ativo(request, pk):
+    produto = get_object_or_404(Produto, pk=pk)
+    produto.ativo = not produto.ativo
+    produto.save()
+    status = 'ativado' if produto.ativo else 'desativado'
+    messages.success(request, f'Produto "{produto.nome}" {status} com sucesso!')
+    return redirect('produto_lista')
+
+
+@login_required
+@require_POST
 def excluir(request, pk):
     from estoque.models import Estoque
     produto = get_object_or_404(Produto, pk=pk)

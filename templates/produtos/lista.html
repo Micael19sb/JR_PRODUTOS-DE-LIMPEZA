@@ -83,11 +83,27 @@
             <span class="badge badge-status-cancel" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Inativo</span>
           {% endif %}
         </td>
-        <td>
+        <td class="d-flex gap-1 align-items-center">
           <button class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem"
             onclick="abrirModalEditar({{ produto.pk }}, '{{ produto.codigo }}', '{{ produto.nome|escapejs }}', '{{ produto.categoria_id|default:'' }}', '{{ produto.unidade }}', '{{ produto.preco_custo }}', '{{ produto.preco_venda }}', {{ produto.ativo|yesno:'true,false' }})">
             <i class="bi bi-pencil"></i>
           </button>
+          <form method="post" action="{% url 'produto_toggle_ativo' produto.pk %}" style="display:inline">
+            {% csrf_token %}
+            {% if produto.ativo %}
+              <button type="submit" class="btn btn-sm btn-outline-success" style="font-size:0.75rem"
+                title="Desativar produto"
+                onclick="return confirm('Desativar o produto \"{{ produto.nome }}\"? Ele não aparecerá mais no PDV.')">
+                <i class="bi bi-toggle-on"></i>
+              </button>
+            {% else %}
+              <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size:0.75rem"
+                title="Ativar produto"
+                onclick="return confirm('Ativar o produto \"{{ produto.nome }}\"?')">
+                <i class="bi bi-toggle-off"></i>
+              </button>
+            {% endif %}
+          </form>
         </td>
       </tr>
       {% empty %}

@@ -8,5 +8,6 @@ urlpatterns = [
     path('categoria-ajax/', views.categoria_ajax, name='categoria_ajax'),
     path('<int:pk>/editar/', views.editar, name='produto_editar'),
     path('<int:pk>/editar-ajax/', views.editar_ajax, name='produto_editar_ajax'),
+    path('<int:pk>/toggle-ativo/', views.toggle_ativo, name='produto_toggle_ativo'),
     path('<int:pk>/excluir/', views.excluir, name='produto_excluir'),
 ]
