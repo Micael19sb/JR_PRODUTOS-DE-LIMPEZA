@@ -1,4 +1,5 @@
 {% extends 'base/base.html' %}
+{% load l10n %}
 {% block title %}Ajustar Estoque{% endblock %}
 {% block page_title %}Ajuste de estoque{% endblock %}
 
@@ -31,13 +32,13 @@
             Nova quantidade real <span class="text-danger">*</span>
           </label>
           <input type="number" name="quantidade" class="form-control form-control-lg"
-            value="{{ estoque.quantidade }}" min="0" step="0.01" required
+            value="{{ estoque.quantidade|unlocalize }}" min="0" step="0.01" required
             style="font-size:1.5rem;font-weight:700;text-align:center">
         </div>
         <div class="mb-3">
           <label class="form-label" style="font-size:0.82rem;font-weight:600">Estoque mínimo</label>
           <input type="number" name="estoque_minimo" class="form-control"
-            value="{{ estoque.estoque_minimo }}" min="0" step="0.01">
+            value="{{ estoque.estoque_minimo|unlocalize }}" min="0" step="0.01">
           <div style="font-size:0.72rem;color:#64748b;margin-top:0.25rem">Abaixo desse valor o sistema vai alertar.</div>
         </div>
         <div class="mb-4">

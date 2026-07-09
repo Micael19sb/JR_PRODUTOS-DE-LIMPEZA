@@ -1,4 +1,5 @@
 {% extends 'base/base.html' %}
+{% load l10n %}
 {% block title %}{% if produto %}Editar produto{% else %}Novo produto{% endif %}{% endblock %}
 {% block page_title %}{% if produto %}Editar produto{% else %}Novo produto{% endif %}{% endblock %}
 
@@ -46,13 +47,13 @@
           <div class="col-md-6">
             <label class="form-label" style="font-size:0.82rem;font-weight:600">Preço de custo (R$)</label>
             <input type="number" name="preco_custo" class="form-control"
-              value="{{ produto.preco_custo|default:'0' }}"
+              value="{{ produto.preco_custo|default:'0'|unlocalize }}"
               step="0.01" min="0" placeholder="0,00">
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:0.82rem;font-weight:600">Preço de venda (R$) <span class="text-danger">*</span></label>
             <input type="number" name="preco_venda" class="form-control"
-              value="{{ produto.preco_venda|default:'' }}"
+              value="{{ produto.preco_venda|default:''|unlocalize }}"
               step="0.01" min="0" placeholder="0,00" required>
           </div>
 
