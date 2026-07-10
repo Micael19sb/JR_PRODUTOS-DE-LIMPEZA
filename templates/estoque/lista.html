@@ -98,8 +98,11 @@
             <a href="{% url 'estoque_entrada' e.pk %}" class="btn btn-sm btn-primary" style="font-size:0.72rem;padding:0.25rem 0.6rem">
               <i class="bi bi-plus-lg"></i> Entrada
             </a>
-            <a href="{% url 'estoque_ajuste' e.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem">
-              <i class="bi bi-pencil"></i>
+            <a href="{% url 'produto_editar' e.produto.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem" title="Editar produto">
+              <i class="bi bi-pencil-square"></i>
+            </a>
+            <a href="{% url 'estoque_ajuste' e.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem" title="Ajustar quantidade">
+              <i class="bi bi-sliders"></i>
             </a>
             <a href="{% url 'estoque_historico' e.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem">
               <i class="bi bi-clock-history"></i>
