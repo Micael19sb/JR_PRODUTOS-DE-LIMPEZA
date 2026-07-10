@@ -13,6 +13,7 @@ from clientes.models import Cliente
 from estoque.models import Estoque, MovimentoEstoque
 from financeiro.models import ContaReceber
 from lojas.models import Loja
+from core.utils import normalizar_busca
 
 from datetime import date, timedelta
 
@@ -56,10 +57,11 @@ def buscar_produto(request):
     resultados = []
 
     if q and loja:
-        produtos = (
-            Produto.objects.filter(ativo=True, nome__icontains=q) |
-            Produto.objects.filter(ativo=True, codigo__icontains=q)
-        ).distinct()[:10]
+        q_norm = normalizar_busca(q)
+        produtos = [
+            p for p in Produto.objects.filter(ativo=True)
+            if q_norm in normalizar_busca(p.nome) or q_norm in normalizar_busca(p.codigo)
+        ][:10]
 
         for p in produtos:
             try:

@@ -3,6 +3,7 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Produto, Categoria
+from core.utils import normalizar_busca
 
 
 @login_required
@@ -12,8 +13,9 @@ def lista(request):
 
     produtos = Produto.objects.select_related('categoria').order_by('nome')
     if q:
-        produtos = produtos.filter(nome__icontains=q) | produtos.filter(codigo__icontains=q)
-        produtos = produtos.distinct()
+        q_norm = normalizar_busca(q)
+        ids = [p.pk for p in produtos if q_norm in normalizar_busca(p.nome) or q_norm in normalizar_busca(p.codigo)]
+        produtos = produtos.filter(pk__in=ids)
     if categoria_id:
         produtos = produtos.filter(categoria_id=categoria_id)
 
