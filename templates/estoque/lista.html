@@ -8,122 +8,182 @@
   </button>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+  .estoque-tabs { display: flex; gap: 1.4rem; border-bottom: 1px solid #e2e8f0; }
+  .estoque-tab {
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    padding: 0.6rem 0.1rem 0.65rem; margin-bottom: -1px; border-bottom: 2px solid transparent;
+    font-size: 0.84rem; font-weight: 600; color: #94a3b8;
+    display: flex; align-items: center; gap: 0.45rem;
+  }
+  .estoque-tab.active { color: #1e293b; border-bottom-color: #3b82f6; }
+  .tab-count { font-size: 0.68rem; font-weight: 700; border-radius: 999px; padding: 0.08rem 0.5rem; background: #f1f5f9; color: #64748b; }
+  .estoque-tab.active .tab-count { background: #dbeafe; color: #1d4ed8; }
+  .tab-count-alerta { background: #fef9c3; color: #713f12; }
+  .estoque-tab.active .tab-count-alerta { background: #fde68a; color: #78350f; }
+  .estoque-painel { display: none; }
+  .estoque-painel.active { display: block; }
+</style>
+{% endblock %}
+
 {% block content %}
 
-{% if alertas %}
-<div class="alerta-estoque p-3 mb-3">
-  <div class="d-flex align-items-center gap-2 mb-2">
-    <i class="bi bi-exclamation-triangle text-warning" style="font-size:1.1rem"></i>
-    <span style="font-weight:600;font-size:0.85rem">{{ alertas|length }} produto(s) com estoque baixo</span>
+<!-- Abas -->
+<div class="estoque-tabs mb-3">
+  <button type="button" class="estoque-tab {% if alertas and not q and not filtro %}active{% endif %}" data-aba="baixo" onclick="mudarAbaEstoque('baixo')">
+    <i class="bi bi-exclamation-triangle"></i>
+    Estoque baixo <span class="tab-count tab-count-alerta">{{ alertas|length }}</span>
+  </button>
+  <button type="button" class="estoque-tab {% if q or filtro or not alertas %}active{% endif %}" data-aba="todos" onclick="mudarAbaEstoque('todos')">
+    Todos os produtos <span class="tab-count">{{ estoques|length }}</span>
+  </button>
+</div>
+
+<!-- Painel: Estoque baixo -->
+<div class="estoque-painel {% if alertas and not q and not filtro %}active{% endif %}" id="painel-baixo">
+  {% if alertas %}
+  <div class="alerta-estoque p-2 px-3 mb-3 d-flex align-items-center gap-2">
+    <i class="bi bi-exclamation-triangle text-warning"></i>
+    <span style="font-size:0.82rem"><strong>{{ alertas|length }}</strong> produto(s) abaixo do estoque mínimo — dê entrada assim que repor.</span>
   </div>
-  <div class="row g-2">
-    {% for e in alertas %}
-    <div class="col-md-4">
-      <div style="background:#fff;border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;border:1px solid #fed7aa">
-        <div style="font-weight:600">{{ e.produto.nome }}</div>
-        <div style="color:#dc2626">{{ e.quantidade }} {{ e.produto.unidade }} — minimo: {{ e.estoque_minimo }}</div>
-        <a href="{% url 'estoque_entrada' e.pk %}" class="btn btn-sm btn-warning mt-1" style="font-size:0.72rem;padding:0.2rem 0.6rem">
-          <i class="bi bi-plus me-1"></i>Dar entrada
-        </a>
+  <div class="table-card">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Produto</th>
+          <th>Qtd. atual</th>
+          <th>Mínimo</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in alertas %}
+        <tr>
+          <td style="font-weight:500">
+            {{ e.produto.nome }}
+            {% if e.produto.categoria.nome == "Inflamavel" %}🔥{% endif %}
+          </td>
+          <td>
+            <span style="font-weight:700;color:{% if e.quantidade <= 0 %}#dc2626{% else %}#d97706{% endif %}">
+              {{ e.quantidade }} {{ e.produto.get_unidade_display }}
+            </span>
+          </td>
+          <td style="font-size:0.82rem;color:#64748b">{{ e.estoque_minimo }}</td>
+          <td>
+            <a href="{% url 'estoque_entrada' e.pk %}" class="btn btn-sm btn-warning" style="font-size:0.72rem;padding:0.25rem 0.6rem">
+              <i class="bi bi-plus-lg"></i> Dar entrada
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="table-card text-center text-muted py-4">
+    <i class="bi bi-check-circle d-block mb-2" style="font-size:1.5rem;color:#15803d"></i>
+    Nenhum produto com estoque baixo no momento.
+  </div>
+  {% endif %}
+</div>
+
+<!-- Painel: Todos os produtos -->
+<div class="estoque-painel {% if q or filtro or not alertas %}active{% endif %}" id="painel-todos">
+
+  <!-- Filtros -->
+  <div class="pdv-card p-3 mb-3">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label" style="font-size:0.78rem;font-weight:600">Buscar produto</label>
+        <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Nome do produto...">
       </div>
-    </div>
-    {% endfor %}
+      <div class="col-md-4">
+        <label class="form-label" style="font-size:0.78rem;font-weight:600">Filtrar</label>
+        <select name="filtro" class="form-select form-select-sm">
+          <option value="">Todos os produtos</option>
+          <option value="baixo" {% if filtro == 'baixo' %}selected{% endif %}>Estoque baixo</option>
+          <option value="zerado" {% if filtro == 'zerado' %}selected{% endif %}>Estoque zerado</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-sm btn-primary w-100">
+          <i class="bi bi-search me-1"></i>Filtrar
+        </button>
+      </div>
+    </form>
   </div>
-</div>
-{% endif %}
 
-<!-- Filtros -->
-<div class="pdv-card p-3 mb-3">
-  <form method="get" class="row g-2 align-items-end">
-    <div class="col-md-5">
-      <label class="form-label" style="font-size:0.78rem;font-weight:600">Buscar produto</label>
-      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Nome do produto...">
-    </div>
-    <div class="col-md-4">
-      <label class="form-label" style="font-size:0.78rem;font-weight:600">Filtrar</label>
-      <select name="filtro" class="form-select form-select-sm">
-        <option value="">Todos os produtos</option>
-        <option value="baixo" {% if filtro == 'baixo' %}selected{% endif %}>Estoque baixo</option>
-        <option value="zerado" {% if filtro == 'zerado' %}selected{% endif %}>Estoque zerado</option>
-      </select>
-    </div>
-    <div class="col-md-3">
-      <button type="submit" class="btn btn-sm btn-primary w-100">
-        <i class="bi bi-search me-1"></i>Filtrar
-      </button>
-    </div>
-  </form>
-</div>
-
-<!-- Tabela -->
-<div class="table-card">
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Produto</th>
-        <th>Categoria</th>
-        <th>Unidade</th>
-        <th>Qtd. atual</th>
-        <th>Mínimo</th>
-        <th>Situação</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for e in estoques %}
-      <tr>
-        <td style="font-weight:500">
-          {{ e.produto.nome }}
-          {% if e.produto.categoria.nome == "Inflamavel" %}🔥{% endif %}
-        </td>
-        <td style="font-size:0.8rem;color:#64748b">{{ e.produto.categoria.nome|default:"—" }}</td>
-        <td style="font-size:0.8rem">{{ e.produto.get_unidade_display }}</td>
-        <td>
-          <span style="font-weight:700;font-size:1rem;color:{% if e.quantidade <= 0 %}#dc2626{% elif e.abaixo_minimo %}#d97706{% else %}#15803d{% endif %}">
-            {{ e.quantidade }}
-          </span>
-        </td>
-        <td style="font-size:0.82rem;color:#64748b">{{ e.estoque_minimo }}</td>
-        <td>
-          {% if e.quantidade <= 0 %}
-            <span class="badge badge-fiado" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Zerado</span>
-          {% elif e.abaixo_minimo %}
-            <span class="badge badge-dinheiro" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Baixo</span>
-          {% else %}
-            <span class="badge badge-status-ok" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">OK</span>
-          {% endif %}
-        </td>
-        <td>
-          <div class="d-flex gap-1">
-            <a href="{% url 'estoque_entrada' e.pk %}" class="btn btn-sm btn-primary" style="font-size:0.72rem;padding:0.25rem 0.6rem">
-              <i class="bi bi-plus-lg"></i> Entrada
-            </a>
-            <a href="{% url 'produto_editar' e.produto.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem" title="Editar produto">
-              <i class="bi bi-pencil-square"></i>
-            </a>
-            <a href="{% url 'estoque_ajuste' e.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem" title="Ajustar quantidade">
-              <i class="bi bi-sliders"></i>
-            </a>
-            <a href="{% url 'estoque_historico' e.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem">
-              <i class="bi bi-clock-history"></i>
-            </a>
-            <button class="btn btn-sm btn-outline-danger" style="font-size:0.72rem;padding:0.25rem 0.6rem"
-              onclick="confirmarExclusao({{ e.produto.pk }}, '{{ e.produto.nome }}')">
-              <i class="bi bi-trash"></i>
-            </button>
-          </div>
-        </td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="7" class="text-center text-muted py-4">
-          <i class="bi bi-archive d-block mb-2" style="font-size:1.5rem"></i>
-          Nenhum produto no estoque ainda.
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <!-- Tabela -->
+  <div class="table-card">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Produto</th>
+          <th>Categoria</th>
+          <th>Unidade</th>
+          <th>Qtd. atual</th>
+          <th>Mínimo</th>
+          <th>Situação</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in estoques %}
+        <tr>
+          <td style="font-weight:500">
+            {{ e.produto.nome }}
+            {% if e.produto.categoria.nome == "Inflamavel" %}🔥{% endif %}
+          </td>
+          <td style="font-size:0.8rem;color:#64748b">{{ e.produto.categoria.nome|default:"—" }}</td>
+          <td style="font-size:0.8rem">{{ e.produto.get_unidade_display }}</td>
+          <td>
+            <span style="font-weight:700;font-size:1rem;color:{% if e.quantidade <= 0 %}#dc2626{% elif e.abaixo_minimo %}#d97706{% else %}#15803d{% endif %}">
+              {{ e.quantidade }}
+            </span>
+          </td>
+          <td style="font-size:0.82rem;color:#64748b">{{ e.estoque_minimo }}</td>
+          <td>
+            {% if e.quantidade <= 0 %}
+              <span class="badge badge-fiado" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Zerado</span>
+            {% elif e.abaixo_minimo %}
+              <span class="badge badge-dinheiro" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">Baixo</span>
+            {% else %}
+              <span class="badge badge-status-ok" style="font-size:0.7rem;padding:0.3rem 0.6rem;border-radius:6px">OK</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{% url 'estoque_entrada' e.pk %}" class="btn btn-sm btn-primary" style="font-size:0.72rem;padding:0.25rem 0.6rem">
+                <i class="bi bi-plus-lg"></i> Entrada
+              </a>
+              <a href="{% url 'produto_editar' e.produto.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem" title="Editar produto">
+                <i class="bi bi-pencil-square"></i>
+              </a>
+              <a href="{% url 'estoque_ajuste' e.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem" title="Ajustar quantidade">
+                <i class="bi bi-sliders"></i>
+              </a>
+              <a href="{% url 'estoque_historico' e.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem">
+                <i class="bi bi-clock-history"></i>
+              </a>
+              <button class="btn btn-sm btn-outline-danger" style="font-size:0.72rem;padding:0.25rem 0.6rem"
+                onclick="confirmarExclusao({{ e.produto.pk }}, '{{ e.produto.nome }}')">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">
+            <i class="bi bi-archive d-block mb-2" style="font-size:1.5rem"></i>
+            Nenhum produto no estoque ainda.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <!-- Modal cadastro de produto -->
@@ -248,6 +308,12 @@
 {% block extra_js %}
 <script>
 const CSRF = '{{ csrf_token }}';
+
+function mudarAbaEstoque(aba) {
+  document.querySelectorAll('.estoque-tab').forEach(t => t.classList.toggle('active', t.dataset.aba === aba));
+  document.getElementById('painel-baixo').classList.toggle('active', aba === 'baixo');
+  document.getElementById('painel-todos').classList.toggle('active', aba === 'todos');
+}
 
 function gerarNome() {
   const catSelect = document.getElementById('np-categoria');
