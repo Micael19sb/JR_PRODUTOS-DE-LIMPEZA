@@ -50,7 +50,7 @@
           {% if venda.desconto %}
           <tr>
             <td colspan="3" class="text-end text-muted">Desconto</td>
-            <td style="color:#dc2626;font-weight:600">- R$ {{ venda.desconto|floatformat:2 }}</td>
+            <td style="color:var(--red);font-weight:600">- R$ {{ venda.desconto|floatformat:2 }}</td>
           </tr>
           {% endif %}
           <tr>
@@ -105,7 +105,7 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0" style="border-radius:16px">
       <div class="modal-body text-center p-4">
-        <div style="width:56px;height:56px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;color:#dc2626">
+        <div style="width:56px;height:56px;background:var(--red-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;color:var(--red)">
           <i class="bi bi-exclamation-triangle"></i>
         </div>
         <h5 class="fw-bold mb-1">Cancelar esta venda?</h5>

@@ -38,20 +38,20 @@
 
     <!-- Saldo devedor -->
     {% if total_devido > 0 %}
-    <div class="p-3 mb-3" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px">
+    <div class="p-3 mb-3" style="background:var(--alert-bg);border:1px solid var(--alert-border);border-radius:12px">
       <div style="font-size:0.78rem;color:#92400e;font-weight:600;margin-bottom:0.25rem">
         <i class="bi bi-exclamation-triangle me-1"></i>Saldo devedor
       </div>
-      <div style="font-size:1.8rem;font-weight:700;color:#dc2626">
+      <div style="font-size:1.8rem;font-weight:700;color:var(--red)">
         R$ {{ total_devido|floatformat:2 }}
       </div>
-      <div style="font-size:0.75rem;color:#64748b;margin-top:0.25rem">
+      <div style="font-size:0.75rem;color:var(--ink-muted);margin-top:0.25rem">
         {{ contas_pendentes|length }} conta(s) pendente(s)
       </div>
     </div>
     {% else %}
     <div class="pdv-card p-3 mb-3" style="background:#f0fdf4;border-color:#bbf7d0">
-      <div style="font-size:0.85rem;color:#15803d;font-weight:600">
+      <div style="font-size:0.85rem;color:var(--green);font-weight:600">
         <i class="bi bi-check-circle me-1"></i>Cliente em dia!
       </div>
     </div>
@@ -136,7 +136,7 @@
             <td><a href="{% url 'venda_detalhe' venda.pk %}" style="color:#1e40af">#{{ venda.pk }}</a></td>
             <td style="font-size:0.82rem">{{ venda.get_forma_pagamento_display }}</td>
             <td style="font-weight:600">R$ {{ venda.total|floatformat:2 }}</td>
-            <td style="font-size:0.78rem;color:#64748b">{{ venda.criada_em|date:"d/m/Y H:i" }}</td>
+            <td style="font-size:0.78rem;color:var(--ink-muted)">{{ venda.criada_em|date:"d/m/Y H:i" }}</td>
           </tr>
           {% empty %}
           <tr>
@@ -154,12 +154,12 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0" style="border-radius:16px">
       <div class="modal-body text-center p-4">
-        <div style="width:56px;height:56px;background:#d1fae5;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;color:#065f46">
+        <div style="width:56px;height:56px;background:var(--green-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;color:var(--green-ink)">
           <i class="bi bi-cash-coin"></i>
         </div>
         <h5 class="fw-bold mb-1">Confirmar pagamento?</h5>
         <p class="text-muted mb-1" style="font-size:0.85rem" id="modal-pag-desc"></p>
-        <p style="font-size:1.3rem;font-weight:700;color:#15803d" id="modal-pag-valor"></p>
+        <p style="font-size:1.3rem;font-weight:700;color:var(--green)" id="modal-pag-valor"></p>
         <p class="text-muted mb-3" style="font-size:0.78rem">Ao confirmar, o valor será removido do saldo devedor.</p>
         <div class="d-flex gap-2">
           <button class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancelar</button>
@@ -180,12 +180,12 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0" style="border-radius:16px">
       <div class="modal-body text-center p-4">
-        <div style="width:56px;height:56px;background:#d1fae5;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;color:#065f46">
+        <div style="width:56px;height:56px;background:var(--green-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;color:var(--green-ink)">
           <i class="bi bi-check-all"></i>
         </div>
         <h5 class="fw-bold mb-1">Quitar toda a dívida?</h5>
         <p class="text-muted mb-1" style="font-size:0.85rem">{{ cliente.nome }}</p>
-        <p style="font-size:1.4rem;font-weight:700;color:#15803d">R$ {{ total_devido|floatformat:2 }}</p>
+        <p style="font-size:1.4rem;font-weight:700;color:var(--green)">R$ {{ total_devido|floatformat:2 }}</p>
         <p class="text-muted mb-3" style="font-size:0.78rem">Todas as contas pendentes serão marcadas como pagas.</p>
         <div class="d-flex gap-2">
           <button class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancelar</button>

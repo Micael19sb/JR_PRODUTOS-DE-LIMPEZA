@@ -41,7 +41,7 @@
       {% for cliente in clientes %}
       <tr>
         <td>
-          <a href="{% url 'cliente_detalhe' cliente.pk %}" style="font-weight:600;color:#1e293b;text-decoration:none">
+          <a href="{% url 'cliente_detalhe' cliente.pk %}" style="font-weight:600;color:var(--ink);text-decoration:none">
             {{ cliente.nome }}
           </a>
         </td>
@@ -49,9 +49,9 @@
         <td style="font-size:0.85rem">{{ cliente.cpf_cnpj|default:"—" }}</td>
         <td>
           {% if cliente.saldo_devedor > 0 %}
-            <span style="color:#dc2626;font-weight:700">R$ {{ cliente.saldo_devedor|floatformat:2 }}</span>
+            <span style="color:var(--red);font-weight:700">R$ {{ cliente.saldo_devedor|floatformat:2 }}</span>
           {% else %}
-            <span style="color:#15803d;font-size:0.82rem">Em dia</span>
+            <span style="color:var(--green);font-size:0.82rem">Em dia</span>
           {% endif %}
         </td>
         <td>
@@ -91,7 +91,7 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0" style="border-radius:16px">
       <div class="modal-body text-center p-4">
-        <div style="width:56px;height:56px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;color:#dc2626">
+        <div style="width:56px;height:56px;background:var(--red-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;color:var(--red)">
           <i class="bi bi-trash"></i>
         </div>
         <h5 class="fw-bold mb-1">Excluir cliente?</h5>

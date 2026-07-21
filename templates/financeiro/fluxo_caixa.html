@@ -10,13 +10,13 @@
 
 {% block extra_css %}
 <style>
-  .fc-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:1.25rem; }
-  .fc-valor-positivo { color:#15803d; font-weight:700; font-size:1.4rem; }
-  .fc-valor-negativo { color:#dc2626; font-weight:700; font-size:1.4rem; }
+  .fc-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:1.25rem; }
+  .fc-valor-positivo { color:var(--green); font-weight:700; font-size:1.4rem; }
+  .fc-valor-negativo { color:var(--red); font-weight:700; font-size:1.4rem; }
   .fc-valor-neutro { color:#1e40af; font-weight:700; font-size:1.4rem; }
   .mov-item {
     display:flex; align-items:center; gap:0.75rem;
-    padding:0.65rem 0; border-bottom:1px solid #f1f5f9;
+    padding:0.65rem 0; border-bottom:1px solid var(--divider);
   }
   .mov-item:last-child { border-bottom:none; }
   .mov-icon {
@@ -24,14 +24,14 @@
     display:flex; align-items:center; justify-content:center;
     font-size:0.85rem; flex-shrink:0;
   }
-  .mov-icon.entrada { background:#d1fae5; color:#065f46; }
-  .mov-icon.saida { background:#fee2e2; color:#7f1d1d; }
+  .mov-icon.entrada { background:var(--green-bg); color:var(--green-ink); }
+  .mov-icon.saida { background:var(--red-bg); color:var(--red-ink); }
   .mov-info { flex:1; }
-  .mov-desc { font-size:0.85rem; font-weight:500; color:#1e293b; }
-  .mov-sub { font-size:0.72rem; color:#64748b; }
+  .mov-desc { font-size:0.85rem; font-weight:500; color:var(--ink); }
+  .mov-sub { font-size:0.72rem; color:var(--ink-muted); }
   .mov-valor { font-weight:700; white-space:nowrap; }
-  .mov-valor.entrada { color:#15803d; }
-  .mov-valor.saida { color:#dc2626; }
+  .mov-valor.entrada { color:var(--green); }
+  .mov-valor.saida { color:var(--red); }
 </style>
 {% endblock %}
 
@@ -56,22 +56,22 @@
 <div class="row g-3 mb-3">
   <div class="col-6 col-md-3">
     <div class="fc-card text-center">
-      <div style="font-size:0.72rem;color:#64748b;font-weight:600;text-transform:uppercase">Saldo abertura</div>
+      <div style="font-size:0.72rem;color:var(--ink-muted);font-weight:600;text-transform:uppercase">Saldo abertura</div>
       <div class="fc-valor-neutro mt-1" style="font-size:1.1rem">R$ {{ saldo_abertura|floatformat:2 }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="fc-card text-center">
-      <div style="font-size:0.72rem;color:#64748b;font-weight:600;text-transform:uppercase">
+      <div style="font-size:0.72rem;color:var(--ink-muted);font-weight:600;text-transform:uppercase">
         <i class="bi bi-arrow-down-circle text-success me-1"></i>Entradas
       </div>
       <div class="fc-valor-positivo mt-1" style="font-size:1.1rem">R$ {{ total_entradas|floatformat:2 }}</div>
-      <div style="font-size:0.72rem;color:#64748b">{{ qtd_vendas }} venda{{ qtd_vendas|pluralize }}</div>
+      <div style="font-size:0.72rem;color:var(--ink-muted)">{{ qtd_vendas }} venda{{ qtd_vendas|pluralize }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="fc-card text-center">
-      <div style="font-size:0.72rem;color:#64748b;font-weight:600;text-transform:uppercase">
+      <div style="font-size:0.72rem;color:var(--ink-muted);font-weight:600;text-transform:uppercase">
         <i class="bi bi-arrow-up-circle text-danger me-1"></i>Saidas
       </div>
       <div class="fc-valor-negativo mt-1" style="font-size:1.1rem">R$ {{ total_saidas|floatformat:2 }}</div>
@@ -79,7 +79,7 @@
   </div>
   <div class="col-6 col-md-3">
     <div class="fc-card text-center">
-      <div style="font-size:0.72rem;color:#64748b;font-weight:600;text-transform:uppercase">Saldo acumulado</div>
+      <div style="font-size:0.72rem;color:var(--ink-muted);font-weight:600;text-transform:uppercase">Saldo acumulado</div>
       <div class="mt-1 {% if saldo_acumulado >= 0 %}fc-valor-positivo{% else %}fc-valor-negativo{% endif %}" style="font-size:1.1rem">
         R$ {{ saldo_acumulado|floatformat:2 }}
       </div>
@@ -96,7 +96,7 @@
         <span style="font-weight:600;font-size:0.875rem">
           <i class="bi bi-list-ul me-1"></i>Movimentacoes de {{ data_sel|date:"d/m/Y" }}
         </span>
-        <span style="font-size:0.75rem;color:#64748b">{{ movimentacoes|length }} lancamento{{ movimentacoes|length|pluralize }}</span>
+        <span style="font-size:0.75rem;color:var(--ink-muted)">{{ movimentacoes|length }} lancamento{{ movimentacoes|length|pluralize }}</span>
       </div>
 
       {% if movimentacoes %}
@@ -139,8 +139,8 @@
       </div>
       {% for forma, valor in por_forma.items %}
       <div class="d-flex justify-content-between mb-1" style="font-size:0.82rem">
-        <span style="color:#64748b">{{ forma }}</span>
-        <span style="font-weight:600;color:#15803d">R$ {{ valor|floatformat:2 }}</span>
+        <span style="color:var(--ink-muted)">{{ forma }}</span>
+        <span style="font-weight:600;color:var(--green)">R$ {{ valor|floatformat:2 }}</span>
       </div>
       {% endfor %}
     </div>
@@ -154,15 +154,15 @@
 
       {% if fechamento_hoje and fechamento_hoje.fechado %}
         <div class="text-center py-2">
-          <div style="color:#15803d;font-weight:600;font-size:0.85rem">
+          <div style="color:var(--green);font-weight:600;font-size:0.85rem">
             <i class="bi bi-check-circle me-1"></i>Caixa fechado!
           </div>
           <div style="font-size:1.3rem;font-weight:700;color:#1e40af;margin-top:0.5rem">
             R$ {{ fechamento_hoje.saldo_fechamento|floatformat:2 }}
           </div>
-          <div style="font-size:0.72rem;color:#64748b">Saldo de fechamento</div>
+          <div style="font-size:0.72rem;color:var(--ink-muted)">Saldo de fechamento</div>
           {% if fechamento_hoje.observacao %}
-          <div style="font-size:0.78rem;color:#64748b;margin-top:0.5rem">{{ fechamento_hoje.observacao }}</div>
+          <div style="font-size:0.78rem;color:var(--ink-muted);margin-top:0.5rem">{{ fechamento_hoje.observacao }}</div>
           {% endif %}
         </div>
       {% else %}
@@ -175,16 +175,16 @@
 
           <div class="mb-2" style="font-size:0.82rem">
             <div class="d-flex justify-content-between">
-              <span style="color:#64748b">Saldo abertura</span>
+              <span style="color:var(--ink-muted)">Saldo abertura</span>
               <span>R$ {{ saldo_abertura|floatformat:2 }}</span>
             </div>
             <div class="d-flex justify-content-between">
-              <span style="color:#15803d">+ Entradas</span>
-              <span style="color:#15803d">R$ {{ total_entradas|floatformat:2 }}</span>
+              <span style="color:var(--green)">+ Entradas</span>
+              <span style="color:var(--green)">R$ {{ total_entradas|floatformat:2 }}</span>
             </div>
             <div class="d-flex justify-content-between">
-              <span style="color:#dc2626">- Saidas</span>
-              <span style="color:#dc2626">R$ {{ total_saidas|floatformat:2 }}</span>
+              <span style="color:var(--red)">- Saidas</span>
+              <span style="color:var(--red)">R$ {{ total_saidas|floatformat:2 }}</span>
             </div>
             <div class="d-flex justify-content-between border-top mt-1 pt-1">
               <span style="font-weight:700">Saldo final</span>

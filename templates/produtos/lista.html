@@ -32,7 +32,7 @@
 
 <!-- Legenda -->
 <div class="d-flex align-items-center gap-2 mb-2">
-  <span style="font-size:0.78rem;color:#64748b">
+  <span style="font-size:0.78rem;color:var(--ink-muted)">
     🔥 Produtos com a categoria <strong>Inflamável</strong> são sinalizados como alto risco
   </span>
 </div>
@@ -56,7 +56,7 @@
     <tbody>
       {% for produto in produtos %}
       <tr>
-        <td style="font-size:0.78rem;color:#64748b">{{ produto.codigo }}</td>
+        <td style="font-size:0.78rem;color:var(--ink-muted)">{{ produto.codigo }}</td>
         <td style="font-weight:500">
           {{ produto.nome }}
           {% if produto.categoria.nome == "Inflamavel" or produto.categoria.nome == "Inflamável" %}
@@ -67,11 +67,11 @@
         </td>
         <td style="font-size:0.8rem">{{ produto.categoria.nome|default:"—" }}</td>
         <td style="font-size:0.8rem">{{ produto.get_unidade_display }}</td>
-        <td style="font-size:0.82rem;color:#64748b">R$ {{ produto.preco_custo|floatformat:2 }}</td>
+        <td style="font-size:0.82rem;color:var(--ink-muted)">R$ {{ produto.preco_custo|floatformat:2 }}</td>
         <td style="font-weight:600;color:#1e40af">R$ {{ produto.preco_venda|floatformat:2 }}</td>
         <td>
           {% if produto.margem %}
-            <span style="font-size:0.78rem;color:{% if produto.margem >= 30 %}#15803d{% elif produto.margem >= 15 %}#d97706{% else %}#dc2626{% endif %};font-weight:600">
+            <span style="font-size:0.78rem;color:{% if produto.margem >= 30 %}var(--green){% elif produto.margem >= 15 %}var(--amber){% else %}var(--red){% endif %};font-weight:600">
               {{ produto.margem }}%
             </span>
           {% else %}—{% endif %}

@@ -23,7 +23,7 @@
           <i class="bi bi-sun"></i>
         </div>
       </div>
-      <div class="mt-2" style="font-size:0.75rem;color:#64748b">{{ qtd_hoje }} venda{{ qtd_hoje|pluralize }}</div>
+      <div class="mt-2" style="font-size:0.75rem;color:var(--ink-muted)">{{ qtd_hoje }} venda{{ qtd_hoje|pluralize }}</div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
@@ -33,28 +33,28 @@
           <div class="stat-value">R$ {{ total_mes|floatformat:2 }}</div>
           <div class="stat-label">Este mês</div>
         </div>
-        <div class="stat-icon" style="background:#f0fdf4;color:#15803d">
+        <div class="stat-icon" style="background:#f0fdf4;color:var(--green)">
           <i class="bi bi-graph-up"></i>
         </div>
       </div>
-      <div class="mt-2" style="font-size:0.75rem;color:#64748b">{{ qtd_mes }} venda{{ qtd_mes|pluralize }}</div>
+      <div class="mt-2" style="font-size:0.75rem;color:var(--ink-muted)">{{ qtd_mes }} venda{{ qtd_mes|pluralize }}</div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
     <div class="stat-card">
       <div class="d-flex align-items-start justify-content-between">
         <div>
-          <div class="stat-value" style="{% if contas_vencidas %}color:#dc2626{% endif %}">
+          <div class="stat-value" style="{% if contas_vencidas %}color:var(--red){% endif %}">
             R$ {{ total_receber|floatformat:2 }}
           </div>
           <div class="stat-label">A receber</div>
         </div>
-        <div class="stat-icon" style="background:#fff7ed;color:#c2410c">
+        <div class="stat-icon" style="background:var(--alert-bg);color:#c2410c">
           <i class="bi bi-cash-coin"></i>
         </div>
       </div>
       {% if contas_vencidas %}
-        <div class="mt-2" style="font-size:0.75rem;color:#dc2626">
+        <div class="mt-2" style="font-size:0.75rem;color:var(--red)">
           <i class="bi bi-exclamation-circle me-1"></i>{{ contas_vencidas }} vencida{{ contas_vencidas|pluralize }}
         </div>
       {% endif %}
@@ -64,16 +64,16 @@
     <div class="stat-card">
       <div class="d-flex align-items-start justify-content-between">
         <div>
-          <div class="stat-value" style="{% if alertas_estoque %}color:#d97706{% endif %}">
+          <div class="stat-value" style="{% if alertas_estoque %}color:var(--amber){% endif %}">
             {{ alertas_estoque|length }}
           </div>
           <div class="stat-label">Alertas de estoque</div>
         </div>
-        <div class="stat-icon" style="background:#fffbeb;color:#d97706">
+        <div class="stat-icon" style="background:#fffbeb;color:var(--amber)">
           <i class="bi bi-archive"></i>
         </div>
       </div>
-      <div class="mt-2" style="font-size:0.75rem;color:#64748b">
+      <div class="mt-2" style="font-size:0.75rem;color:var(--ink-muted)">
         {% if alertas_estoque %}produtos abaixo do mínimo{% else %}tudo OK{% endif %}
       </div>
     </div>
@@ -107,7 +107,7 @@
               <a href="{% url 'venda_detalhe' venda.pk %}" style="font-size:0.8rem;color:#1e40af">#{{ venda.pk }}</a>
             </td>
             <td>{{ venda.cliente.nome|default:"Consumidor final" }}</td>
-            <td><span style="font-size:0.75rem;color:#64748b">{{ venda.loja.cidade }}</span></td>
+            <td><span style="font-size:0.75rem;color:var(--ink-muted)">{{ venda.loja.cidade }}</span></td>
             <td>
               <span class="badge
                 {% if venda.forma_pagamento == 'pix' %}badge-pix
@@ -118,8 +118,8 @@
                 {{ venda.get_forma_pagamento_display }}
               </span>
             </td>
-            <td style="font-weight:600;color:#1e293b">R$ {{ venda.total|floatformat:2 }}</td>
-            <td style="font-size:0.78rem;color:#64748b">{{ venda.criada_em|date:"d/m H:i" }}</td>
+            <td style="font-weight:600;color:var(--ink)">R$ {{ venda.total|floatformat:2 }}</td>
+            <td style="font-size:0.78rem;color:var(--ink-muted)">{{ venda.criada_em|date:"d/m H:i" }}</td>
           </tr>
           {% empty %}
           <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma venda registrada ainda.</td></tr>
@@ -145,18 +145,18 @@
           {% for item in clientes_devedores %}
           <a href="{% url 'cliente_detalhe' item.cliente.pk %}" style="text-decoration:none">
             <div class="d-flex align-items-center justify-content-between p-2 rounded mb-1"
-              style="background:{% if item.vencida %}#fff1f1{% else %}#f8fafc{% endif %};border:1px solid {% if item.vencida %}#fecaca{% else %}#e2e8f0{% endif %};transition:background 0.15s">
+              style="background:{% if item.vencida %}#fff1f1{% else %}var(--page-bg){% endif %};border:1px solid {% if item.vencida %}#fecaca{% else %}var(--border){% endif %};transition:background 0.15s">
               <div>
-                <div style="font-size:0.82rem;font-weight:600;color:#1e293b">{{ item.cliente.nome }}</div>
+                <div style="font-size:0.82rem;font-weight:600;color:var(--ink)">{{ item.cliente.nome }}</div>
                 {% if item.vencida %}
-                  <div style="font-size:0.7rem;color:#dc2626;font-weight:500">
+                  <div style="font-size:0.7rem;color:var(--red);font-weight:500">
                     <i class="bi bi-clock me-1"></i>Vencida
                   </div>
                 {% else %}
-                  <div style="font-size:0.7rem;color:#64748b">Em dia</div>
+                  <div style="font-size:0.7rem;color:var(--ink-muted)">Em dia</div>
                 {% endif %}
               </div>
-              <div style="font-weight:700;color:{% if item.vencida %}#dc2626{% else %}#d97706{% endif %};font-size:0.9rem">
+              <div style="font-weight:700;color:{% if item.vencida %}var(--red){% else %}var(--amber){% endif %};font-size:0.9rem">
                 R$ {{ item.saldo|floatformat:2 }}
               </div>
             </div>
@@ -168,7 +168,7 @@
           </div>
         {% else %}
           <div class="text-center text-muted py-3" style="font-size:0.82rem">
-            <i class="bi bi-check-circle d-block mb-1" style="font-size:1.5rem;color:#15803d"></i>
+            <i class="bi bi-check-circle d-block mb-1" style="font-size:1.5rem;color:var(--green)"></i>
             Nenhum cliente devedor!
           </div>
         {% endif %}
@@ -185,7 +185,7 @@
       {% for est in alertas_estoque %}
       <div class="d-flex justify-content-between mb-1" style="font-size:0.78rem">
         <span>{{ est.produto.nome }}</span>
-        <span style="color:#dc2626;font-weight:600">{{ est.quantidade }} {{ est.produto.unidade }}</span>
+        <span style="color:var(--red);font-weight:600">{{ est.quantidade }} {{ est.produto.unidade }}</span>
       </div>
       {% endfor %}
       <a href="{% url 'estoque_lista' %}" class="btn btn-sm btn-warning w-100 mt-2" style="font-size:0.75rem">

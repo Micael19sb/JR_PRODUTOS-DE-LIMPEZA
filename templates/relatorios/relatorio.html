@@ -11,8 +11,8 @@
 {% block extra_css %}
 <style>
   .rel-card {
-    background: #fff;
-    border: 1px solid #e2e8f0;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 1.25rem;
     height: 100%;
@@ -22,16 +22,16 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #64748b;
+    color: var(--ink-muted);
     margin-bottom: 0.5rem;
   }
   .rel-valor {
     font-size: 1.6rem;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--ink);
   }
-  .rel-valor.verde { color: #15803d; }
-  .rel-valor.vermelho { color: #dc2626; }
+  .rel-valor.verde { color: var(--green); }
+  .rel-valor.vermelho { color: var(--red); }
   .rel-valor.azul { color: #1e40af; }
   .chart-container {
     position: relative;
@@ -42,7 +42,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.5rem 0;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--divider);
     font-size: 0.82rem;
   }
   .produto-parado:last-child { border-bottom: none; }
@@ -51,7 +51,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem 0;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--divider);
     font-size: 0.82rem;
   }
   .ranking-item:last-child { border-bottom: none; }
@@ -66,16 +66,16 @@
     flex-shrink: 0;
   }
   .ranking-num.top1 { background: #f59e0b; }
-  .ranking-num.top2 { background: #94a3b8; }
+  .ranking-num.top2 { background: var(--ink-faint); }
   .ranking-num.top3 { background: #cd7c2f; }
   .periodo-select {
-    background: #fff;
-    border: 1px solid #e2e8f0;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 0.4rem 0.85rem;
     font-size: 0.82rem;
     font-weight: 500;
-    color: #1e293b;
+    color: var(--ink);
     cursor: pointer;
   }
   .whatsapp-btn {
@@ -114,7 +114,7 @@
 <!-- Seletor de período + botões -->
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
   <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
-    <span style="font-size:0.82rem;font-weight:600;color:#64748b">Período:</span>
+    <span style="font-size:0.82rem;font-weight:600;color:var(--ink-muted)">Período:</span>
     <select name="mes" class="periodo-select" onchange="this.form.submit()">
       {% for op in opcoes_periodo %}
         <option value="{{ op.mes }}" {% if op.selecionado %}selected{% endif %}
@@ -139,21 +139,21 @@
     <div class="rel-card text-center">
       <div class="rel-card-title"><i class="bi bi-cart-check me-1"></i>Vendas</div>
       <div class="rel-valor azul">{{ qtd_vendas }}</div>
-      <div style="font-size:0.72rem;color:#64748b">vendas no mês</div>
+      <div style="font-size:0.72rem;color:var(--ink-muted)">vendas no mês</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="rel-card text-center">
       <div class="rel-card-title"><i class="bi bi-arrow-down-circle me-1"></i>Faturamento</div>
       <div class="rel-valor azul">R$ {{ total_vendas|floatformat:2 }}</div>
-      <div style="font-size:0.72rem;color:#64748b">{{ mes_nome }}/{{ ano }}</div>
+      <div style="font-size:0.72rem;color:var(--ink-muted)">{{ mes_nome }}/{{ ano }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="rel-card text-center">
       <div class="rel-card-title"><i class="bi bi-arrow-up-circle me-1"></i>Despesas</div>
       <div class="rel-valor vermelho">R$ {{ total_despesas|floatformat:2 }}</div>
-      <div style="font-size:0.72rem;color:#64748b">{{ mes_nome }}/{{ ano }}</div>
+      <div style="font-size:0.72rem;color:var(--ink-muted)">{{ mes_nome }}/{{ ano }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
@@ -162,7 +162,7 @@
       <div class="rel-valor {% if lucro >= 0 %}verde{% else %}vermelho{% endif %}">
         R$ {{ lucro|floatformat:2 }}
       </div>
-      <div style="font-size:0.72rem;color:#64748b">Faturamento − Despesas</div>
+      <div style="font-size:0.72rem;color:var(--ink-muted)">Faturamento − Despesas</div>
     </div>
   </div>
 </div>
@@ -220,7 +220,7 @@
           </div>
           <div style="flex:1">
             <div style="font-weight:600;font-size:0.82rem">{{ p.produto__nome }}</div>
-            <div style="font-size:0.7rem;color:#94a3b8">{{ p.total_qtd }} und vendidas</div>
+            <div style="font-size:0.7rem;color:var(--ink-faint)">{{ p.total_qtd }} und vendidas</div>
           </div>
           <div style="font-weight:700;color:#1e40af;font-size:0.82rem;white-space:nowrap">
             R$ {{ p.total_valor|floatformat:2 }}
@@ -243,14 +243,14 @@
         <i class="bi bi-exclamation-triangle me-1 text-danger"></i>
         Produtos sem venda no mês
         {% if produtos_parados %}
-          <span style="background:#fee2e2;color:#dc2626;border-radius:6px;padding:0.1rem 0.5rem;font-size:0.7rem;margin-left:0.4rem">
+          <span style="background:var(--red-bg);color:var(--red);border-radius:6px;padding:0.1rem 0.5rem;font-size:0.7rem;margin-left:0.4rem">
             {{ produtos_parados|length }} produto{{ produtos_parados|length|pluralize }}
           </span>
         {% endif %}
       </div>
 
       {% if produtos_parados %}
-        <div style="font-size:0.75rem;color:#64748b;margin-bottom:0.75rem">
+        <div style="font-size:0.75rem;color:var(--ink-muted);margin-bottom:0.75rem">
           <i class="bi bi-info-circle me-1"></i>Esses produtos podem precisar de promoção ou revisão de preço.
         </div>
         <div style="max-height:380px;overflow-y:auto">
@@ -258,7 +258,7 @@
           <div class="produto-parado">
             <div>
               <div style="font-weight:500">{{ p.nome }}</div>
-              <div style="font-size:0.7rem;color:#94a3b8">{{ p.categoria.nome|default:"Sem categoria" }}</div>
+              <div style="font-size:0.7rem;color:var(--ink-faint)">{{ p.categoria.nome|default:"Sem categoria" }}</div>
             </div>
             <div style="font-weight:700;color:#1e40af;white-space:nowrap;font-size:0.82rem">
               R$ {{ p.preco_venda|floatformat:2 }}
@@ -267,7 +267,7 @@
           {% endfor %}
         </div>
       {% else %}
-        <div class="text-center py-4" style="font-size:0.82rem;color:#15803d">
+        <div class="text-center py-4" style="font-size:0.82rem;color:var(--green)">
           <i class="bi bi-check-circle d-block mb-2" style="font-size:1.5rem"></i>
           Todos os produtos tiveram vendas este mês!
         </div>

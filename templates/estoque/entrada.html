@@ -14,19 +14,19 @@
 
     <!-- Info do produto -->
     <div class="pdv-card p-3 mb-3">
-      <div style="font-size:0.72rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Produto</div>
-      <div style="font-size:1.1rem;font-weight:700;color:#1e293b;margin-top:0.25rem">{{ estoque.produto.nome }}</div>
-      <div style="font-size:0.82rem;color:#64748b">{{ estoque.produto.categoria.nome|default:"Sem categoria" }} · {{ estoque.produto.get_unidade_display }}</div>
+      <div style="font-size:0.72rem;color:var(--ink-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Produto</div>
+      <div style="font-size:1.1rem;font-weight:700;color:var(--ink);margin-top:0.25rem">{{ estoque.produto.nome }}</div>
+      <div style="font-size:0.82rem;color:var(--ink-muted)">{{ estoque.produto.categoria.nome|default:"Sem categoria" }} · {{ estoque.produto.get_unidade_display }}</div>
       <div class="mt-2 d-flex gap-3">
         <div>
-          <div style="font-size:0.72rem;color:#64748b">Qtd. atual</div>
-          <div style="font-size:1.3rem;font-weight:700;color:{% if estoque.abaixo_minimo %}#dc2626{% else %}#15803d{% endif %}">
+          <div style="font-size:0.72rem;color:var(--ink-muted)">Qtd. atual</div>
+          <div style="font-size:1.3rem;font-weight:700;color:{% if estoque.abaixo_minimo %}var(--red){% else %}var(--green){% endif %}">
             {{ estoque.quantidade }} {{ estoque.produto.unidade }}
           </div>
         </div>
         <div>
-          <div style="font-size:0.72rem;color:#64748b">Mínimo</div>
-          <div style="font-size:1.3rem;font-weight:700;color:#64748b">{{ estoque.estoque_minimo }}</div>
+          <div style="font-size:0.72rem;color:var(--ink-muted)">Mínimo</div>
+          <div style="font-size:1.3rem;font-weight:700;color:var(--ink-muted)">{{ estoque.estoque_minimo }}</div>
         </div>
       </div>
     </div>
