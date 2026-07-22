@@ -178,16 +178,21 @@
     <!-- Alertas de estoque -->
     {% if alertas_estoque %}
     <div class="alerta-estoque p-3">
-      <div class="d-flex align-items-center gap-2 mb-2">
-        <i class="bi bi-exclamation-triangle text-warning"></i>
-        <span style="font-weight:600;font-size:0.82rem">Estoque baixo</span>
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-exclamation-triangle text-warning"></i>
+          <span style="font-weight:600;font-size:0.82rem">Estoque baixo</span>
+        </div>
+        <span style="font-size:0.72rem;color:var(--ink-muted)">{{ alertas_estoque|length }} produto(s)</span>
       </div>
-      {% for est in alertas_estoque %}
-      <div class="d-flex justify-content-between mb-1" style="font-size:0.78rem">
-        <span>{{ est.produto.nome }}</span>
-        <span style="color:var(--red);font-weight:600">{{ est.quantidade }} {{ est.produto.unidade }}</span>
+      <div style="max-height:260px;overflow-y:auto;scrollbar-width:thin">
+        {% for est in alertas_estoque %}
+        <div class="d-flex justify-content-between mb-1" style="font-size:0.78rem">
+          <span>{{ est.produto.nome }}</span>
+          <span style="color:var(--red);font-weight:600;white-space:nowrap;margin-left:0.5rem">{{ est.quantidade }} {{ est.produto.unidade }}</span>
+        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
       <a href="{% url 'estoque_lista' %}" class="btn btn-sm btn-warning w-100 mt-2" style="font-size:0.75rem">
         Ver estoque completo
       </a>
