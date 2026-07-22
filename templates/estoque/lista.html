@@ -1,4 +1,5 @@
 {% extends 'base/base.html' %}
+{% load l10n %}
 {% block title %}Estoque{% endblock %}
 {% block page_title %}Estoque{% endblock %}
 
@@ -71,9 +72,10 @@
           </td>
           <td style="font-size:0.82rem;color:var(--ink-muted)">{{ e.estoque_minimo }}</td>
           <td>
-            <a href="{% url 'estoque_entrada' e.pk %}" class="btn btn-sm btn-warning" style="font-size:0.72rem;padding:0.25rem 0.6rem">
+            <button type="button" class="btn btn-sm btn-warning" style="font-size:0.72rem;padding:0.25rem 0.6rem"
+              onclick="abrirModalEntrada({{ e.pk }}, '{{ e.produto.nome|escapejs }}', '{{ e.produto.get_unidade_display }}')">
               <i class="bi bi-plus-lg"></i> Dar entrada
-            </a>
+            </button>
           </td>
         </tr>
         {% endfor %}
@@ -154,18 +156,22 @@
           </td>
           <td>
             <div class="d-flex gap-1">
-              <a href="{% url 'estoque_entrada' e.pk %}" class="btn btn-sm btn-primary" style="font-size:0.72rem;padding:0.25rem 0.6rem">
+              <button type="button" class="btn btn-sm btn-primary" style="font-size:0.72rem;padding:0.25rem 0.6rem"
+                onclick="abrirModalEntrada({{ e.pk }}, '{{ e.produto.nome|escapejs }}', '{{ e.produto.get_unidade_display }}')">
                 <i class="bi bi-plus-lg"></i> Entrada
-              </a>
-              <a href="{% url 'produto_editar' e.produto.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem" title="Editar produto">
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem" title="Editar produto"
+                onclick="abrirModalEditarProduto({{ e.produto.pk }}, '{{ e.produto.codigo|escapejs }}', '{{ e.produto.nome|escapejs }}', {{ e.produto.categoria_id|default_if_none:'null' }}, {{ e.produto.preco_custo|unlocalize }}, {{ e.produto.preco_venda|unlocalize }}, {{ e.produto.ativo|yesno:'true,false' }})">
                 <i class="bi bi-pencil-square"></i>
-              </a>
-              <a href="{% url 'estoque_ajuste' e.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem" title="Ajustar quantidade">
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem" title="Ajustar quantidade"
+                onclick="abrirModalAjuste({{ e.pk }}, '{{ e.produto.nome|escapejs }}', '{{ e.produto.get_unidade_display }}', {{ e.quantidade|unlocalize }}, {{ e.estoque_minimo|unlocalize }})">
                 <i class="bi bi-sliders"></i>
-              </a>
-              <a href="{% url 'estoque_historico' e.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem">
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;padding:0.25rem 0.6rem" title="Ver movimentação"
+                onclick="abrirModalHistorico({{ e.pk }}, '{{ e.produto.nome|escapejs }}')">
                 <i class="bi bi-clock-history"></i>
-              </a>
+              </button>
               <button class="btn btn-sm btn-outline-danger" style="font-size:0.72rem;padding:0.25rem 0.6rem"
                 onclick="confirmarExclusao({{ e.produto.pk }}, '{{ e.produto.nome }}')">
                 <i class="bi bi-trash"></i>
@@ -303,6 +309,180 @@
   </div>
 </div>
 
+<!-- Modal entrada de estoque -->
+<div class="modal fade" id="modalEntrada" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-body p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="mb-0" style="font-size:1rem;font-weight:700">
+            <i class="bi bi-plus-circle me-2 text-primary"></i>Entrada de estoque
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div id="msg-entrada-erro" style="display:none" class="alert alert-danger py-2 px-3 mb-3">
+          <i class="bi bi-exclamation-circle me-2"></i><span id="msg-entrada-erro-texto"></span>
+        </div>
+        <div class="mb-3" style="font-size:0.85rem;color:var(--ink-muted)">
+          Produto: <strong id="entrada-produto-nome" style="color:var(--ink)"></strong>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" style="font-size:0.82rem;font-weight:600">Quantidade recebida <span id="entrada-unidade"></span> <span class="text-danger">*</span></label>
+          <input type="number" id="entrada-quantidade" class="form-control form-control-lg" placeholder="0" min="0.01" step="0.01" autofocus style="font-size:1.3rem;font-weight:700;text-align:center">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" style="font-size:0.82rem;font-weight:600">Observação <span style="color:var(--ink-faint);font-weight:400">(opcional)</span></label>
+          <input type="text" id="entrada-observacao" class="form-control" placeholder="Ex: Compra fornecedor X">
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-primary flex-fill" onclick="salvarEntrada()">
+            <i class="bi bi-check-lg me-1"></i>Registrar entrada
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal ajuste de estoque -->
+<div class="modal fade" id="modalAjuste" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-body p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="mb-0" style="font-size:1rem;font-weight:700">
+            <i class="bi bi-sliders me-2 text-secondary"></i>Ajustar estoque
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div id="msg-ajuste-erro" style="display:none" class="alert alert-danger py-2 px-3 mb-3">
+          <i class="bi bi-exclamation-circle me-2"></i><span id="msg-ajuste-erro-texto"></span>
+        </div>
+        <div class="mb-3" style="font-size:0.85rem;color:var(--ink-muted)">
+          Produto: <strong id="ajuste-produto-nome" style="color:var(--ink)"></strong><br>
+          Quantidade atual: <strong id="ajuste-produto-atual" style="color:var(--ink)"></strong>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" style="font-size:0.82rem;font-weight:600">Nova quantidade real <span class="text-danger">*</span></label>
+          <input type="number" id="ajuste-quantidade" class="form-control form-control-lg" min="0" step="0.01" style="font-size:1.3rem;font-weight:700;text-align:center">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" style="font-size:0.82rem;font-weight:600">Estoque mínimo</label>
+          <input type="number" id="ajuste-minimo" class="form-control" min="0" step="0.01">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" style="font-size:0.82rem;font-weight:600">Motivo do ajuste <span style="color:var(--ink-faint);font-weight:400">(opcional)</span></label>
+          <input type="text" id="ajuste-observacao" class="form-control" placeholder="Ex: Contagem física, Produto vencido...">
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-warning flex-fill" onclick="salvarAjuste()">
+            <i class="bi bi-check-lg me-1"></i>Salvar ajuste
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal editar produto -->
+<div class="modal fade" id="modalEditarProduto" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-body p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="mb-0" style="font-size:1rem;font-weight:700">
+            <i class="bi bi-pencil-square me-2 text-primary"></i>Editar produto
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div id="msg-editar-erro" style="display:none" class="alert alert-danger py-2 px-3 mb-3">
+          <i class="bi bi-exclamation-circle me-2"></i><span id="msg-editar-erro-texto"></span>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label style="font-size:0.82rem;font-weight:600">Código <span class="text-danger">*</span></label>
+            <input type="text" id="ep-codigo" class="form-control mt-1">
+          </div>
+          <div class="col-md-8">
+            <label style="font-size:0.82rem;font-weight:600">Nome do produto <span class="text-danger">*</span></label>
+            <input type="text" id="ep-nome" class="form-control mt-1">
+          </div>
+          <div class="col-md-6">
+            <label style="font-size:0.82rem;font-weight:600">Categoria</label>
+            <select id="ep-categoria" class="form-select mt-1">
+              <option value="">Sem categoria</option>
+              {% for cat in categorias %}
+                <option value="{{ cat.pk }}">{{ cat.nome }}{% if cat.nome == "Inflamavel" %} 🔥{% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label style="font-size:0.82rem;font-weight:600">Preço de custo (R$)</label>
+            <input type="number" id="ep-custo" class="form-control mt-1" min="0" step="0.01">
+          </div>
+          <div class="col-md-3">
+            <label style="font-size:0.82rem;font-weight:600">Preço de venda (R$) <span class="text-danger">*</span></label>
+            <input type="number" id="ep-venda" class="form-control mt-1" min="0" step="0.01">
+          </div>
+          <div class="col-12">
+            <div class="form-check">
+              <input type="checkbox" id="ep-ativo" class="form-check-input">
+              <label for="ep-ativo" class="form-check-label" style="font-size:0.85rem">Produto ativo</label>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-4">
+          <button class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-primary flex-fill" onclick="salvarEditarProduto()">
+            <i class="bi bi-check-lg me-1"></i>Salvar alterações
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal histórico de movimentação -->
+<div class="modal fade" id="modalHistorico" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-body p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="mb-0" style="font-size:1rem;font-weight:700">
+            <i class="bi bi-clock-history me-2 text-secondary"></i>Movimentação — <span id="historico-produto-nome"></span>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div id="historico-carregando" class="text-center text-muted py-4">
+          <span class="spinner-border spinner-border-sm me-2"></span>Carregando...
+        </div>
+        <div id="historico-vazio" style="display:none" class="text-center text-muted py-4">
+          Nenhuma movimentação registrada ainda.
+        </div>
+        <div class="table-responsive" style="max-height:400px" id="historico-tabela-wrap">
+          <table class="table table-sm" id="historico-tabela" style="display:none">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Qtd.</th>
+                <th>Observação</th>
+                <th>Usuário</th>
+              </tr>
+            </thead>
+            <tbody id="historico-tbody"></tbody>
+          </table>
+        </div>
+        <div class="d-flex justify-content-end mt-3">
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -406,6 +586,216 @@ function confirmarExclusao(produtoId, nome) {
   document.getElementById('modal-produto-nome').textContent = nome;
   document.getElementById('form-excluir-produto').action = '/produtos/' + produtoId + '/excluir/';
   new bootstrap.Modal(document.getElementById('modalExcluirProduto')).show();
+}
+
+/* ===== Entrada de estoque ===== */
+let entradaEstoqueId = null;
+
+function abrirModalEntrada(estoqueId, nomeProduto, unidade) {
+  entradaEstoqueId = estoqueId;
+  document.getElementById('entrada-produto-nome').textContent = nomeProduto;
+  document.getElementById('entrada-unidade').textContent = '(' + unidade + ')';
+  document.getElementById('entrada-quantidade').value = '';
+  document.getElementById('entrada-observacao').value = '';
+  document.getElementById('msg-entrada-erro').style.display = 'none';
+  new bootstrap.Modal(document.getElementById('modalEntrada')).show();
+  setTimeout(() => document.getElementById('entrada-quantidade').focus(), 400);
+}
+
+function salvarEntrada() {
+  const quantidade = document.getElementById('entrada-quantidade').value;
+  const observacao = document.getElementById('entrada-observacao').value.trim();
+  const erroDiv = document.getElementById('msg-entrada-erro');
+  erroDiv.style.display = 'none';
+
+  if (!quantidade || parseFloat(quantidade) <= 0) {
+    document.getElementById('msg-entrada-erro-texto').textContent = 'Informe uma quantidade válida.';
+    erroDiv.style.display = 'block';
+    return;
+  }
+
+  const btn = document.querySelector('#modalEntrada .btn-primary');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+
+  fetch('/estoque/' + entradaEstoqueId + '/entrada-ajax/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+    body: JSON.stringify({ quantidade, observacao })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.sucesso) {
+      location.reload();
+    } else {
+      document.getElementById('msg-entrada-erro-texto').textContent = data.erro || 'Erro ao registrar entrada.';
+      erroDiv.style.display = 'block';
+    }
+  })
+  .catch(() => {
+    document.getElementById('msg-entrada-erro-texto').textContent = 'Erro de conexão. Tente novamente.';
+    erroDiv.style.display = 'block';
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Registrar entrada';
+  });
+}
+
+/* ===== Ajuste de estoque ===== */
+let ajusteEstoqueId = null;
+
+function abrirModalAjuste(estoqueId, nomeProduto, unidade, quantidadeAtual, estoqueMinimo) {
+  ajusteEstoqueId = estoqueId;
+  document.getElementById('ajuste-produto-nome').textContent = nomeProduto;
+  document.getElementById('ajuste-produto-atual').textContent = quantidadeAtual + ' ' + unidade;
+  document.getElementById('ajuste-quantidade').value = quantidadeAtual;
+  document.getElementById('ajuste-minimo').value = estoqueMinimo;
+  document.getElementById('ajuste-observacao').value = '';
+  document.getElementById('msg-ajuste-erro').style.display = 'none';
+  new bootstrap.Modal(document.getElementById('modalAjuste')).show();
+}
+
+function salvarAjuste() {
+  const quantidade = document.getElementById('ajuste-quantidade').value;
+  const estoque_minimo = document.getElementById('ajuste-minimo').value;
+  const observacao = document.getElementById('ajuste-observacao').value.trim();
+  const erroDiv = document.getElementById('msg-ajuste-erro');
+  erroDiv.style.display = 'none';
+
+  if (quantidade === '' || parseFloat(quantidade) < 0) {
+    document.getElementById('msg-ajuste-erro-texto').textContent = 'Informe uma quantidade válida.';
+    erroDiv.style.display = 'block';
+    return;
+  }
+
+  const btn = document.querySelector('#modalAjuste .btn-warning');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+
+  fetch('/estoque/' + ajusteEstoqueId + '/ajuste-ajax/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+    body: JSON.stringify({ quantidade, estoque_minimo, observacao })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.sucesso) {
+      location.reload();
+    } else {
+      document.getElementById('msg-ajuste-erro-texto').textContent = data.erro || 'Erro ao ajustar estoque.';
+      erroDiv.style.display = 'block';
+    }
+  })
+  .catch(() => {
+    document.getElementById('msg-ajuste-erro-texto').textContent = 'Erro de conexão. Tente novamente.';
+    erroDiv.style.display = 'block';
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Salvar ajuste';
+  });
+}
+
+/* ===== Editar produto ===== */
+let editarProdutoId = null;
+
+function abrirModalEditarProduto(produtoId, codigo, nome, categoriaId, precoCusto, precoVenda, ativo) {
+  editarProdutoId = produtoId;
+  document.getElementById('ep-codigo').value = codigo;
+  document.getElementById('ep-nome').value = nome;
+  document.getElementById('ep-categoria').value = categoriaId || '';
+  document.getElementById('ep-custo').value = precoCusto;
+  document.getElementById('ep-venda').value = precoVenda;
+  document.getElementById('ep-ativo').checked = ativo;
+  document.getElementById('msg-editar-erro').style.display = 'none';
+  new bootstrap.Modal(document.getElementById('modalEditarProduto')).show();
+}
+
+function salvarEditarProduto() {
+  const codigo = document.getElementById('ep-codigo').value.trim();
+  const nome = document.getElementById('ep-nome').value.trim();
+  const venda = document.getElementById('ep-venda').value;
+  const erroDiv = document.getElementById('msg-editar-erro');
+  erroDiv.style.display = 'none';
+
+  if (!codigo || !nome || !venda) {
+    document.getElementById('msg-editar-erro-texto').textContent = 'Preencha código, nome e preço de venda.';
+    erroDiv.style.display = 'block';
+    return;
+  }
+
+  const btn = document.querySelector('#modalEditarProduto .btn-primary');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+
+  fetch('/produtos/' + editarProdutoId + '/editar-ajax/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+    body: JSON.stringify({
+      codigo,
+      nome,
+      categoria_id: document.getElementById('ep-categoria').value || null,
+      unidade: 'un',
+      preco_custo: document.getElementById('ep-custo').value || '0',
+      preco_venda: venda,
+      ativo: document.getElementById('ep-ativo').checked,
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.sucesso) {
+      location.reload();
+    } else {
+      document.getElementById('msg-editar-erro-texto').textContent = data.erro || 'Erro ao salvar produto.';
+      erroDiv.style.display = 'block';
+    }
+  })
+  .catch(() => {
+    document.getElementById('msg-editar-erro-texto').textContent = 'Erro de conexão. Tente novamente.';
+    erroDiv.style.display = 'block';
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Salvar alterações';
+  });
+}
+
+/* ===== Histórico de movimentação ===== */
+function abrirModalHistorico(estoqueId, nomeProduto) {
+  document.getElementById('historico-produto-nome').textContent = nomeProduto;
+  document.getElementById('historico-carregando').style.display = 'block';
+  document.getElementById('historico-vazio').style.display = 'none';
+  document.getElementById('historico-tabela').style.display = 'none';
+  document.getElementById('historico-tbody').innerHTML = '';
+  new bootstrap.Modal(document.getElementById('modalHistorico')).show();
+
+  fetch('/estoque/' + estoqueId + '/historico-ajax/')
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('historico-carregando').style.display = 'none';
+      if (!data.movimentos || data.movimentos.length === 0) {
+        document.getElementById('historico-vazio').style.display = 'block';
+        return;
+      }
+      const tbody = document.getElementById('historico-tbody');
+      data.movimentos.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td style="font-size:0.8rem;white-space:nowrap">' + m.criado_em + '</td>' +
+          '<td style="font-size:0.8rem">' + m.tipo + '</td>' +
+          '<td style="font-size:0.8rem;font-weight:600">' + m.quantidade + '</td>' +
+          '<td style="font-size:0.8rem">' + (m.observacao || '—') + '</td>' +
+          '<td style="font-size:0.8rem">' + m.criado_por + '</td>';
+        tbody.appendChild(tr);
+      });
+      document.getElementById('historico-tabela').style.display = '';
+    })
+    .catch(() => {
+      document.getElementById('historico-carregando').style.display = 'none';
+      document.getElementById('historico-vazio').textContent = 'Erro ao carregar movimentação.';
+      document.getElementById('historico-vazio').style.display = 'block';
+    });
 }
 </script>
 {% endblock %}
